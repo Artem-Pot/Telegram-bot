@@ -17,6 +17,9 @@ const imagesFolder = './img'; // Укажите путь к вашей папк�
 // Интервал времени для отправки изображений (в миллисекундах)
 const interval = 10000; // 10 секунд
 
+let sendingImages = false; // Флаг для отслеживания состояния отправки изображений
+let intervalId; // ID интервала
+
 // Функция для получения списка изображений из папки
 function getImages() {
     return fs.readdirSync(imagesFolder).filter(file => {
@@ -25,7 +28,7 @@ function getImages() {
 }
 
 // Функция для отправки изображения
-function sendImage(chatId, image) {
+function sendImage(image) {
     const imagePath = path.join(imagesFolder, image);
     console.log(`Attempting to send image: ${imagePath}`); // Отладочная информация
     bot.sendPhoto(chatId, imagePath)
@@ -38,20 +41,85 @@ function sendImage(chatId, image) {
 }
 
 // Основная функция для отправки изображений через заданный интервал
-function startSendingImages() {
+function startSendingImages(chatId) {
+    if (sendingImages) return; // Если уже отправляем, ничего не делаем
+
+    sendingImages = true;
     const images = getImages();
     if (images.length === 0) {
         console.log('No images found in the specified folder.');
+        sendingImages = false; // Сбрасываем флаг
         return; // Если нет изображений, выходим из функции
     }
 
     let index = 0;
 
-    setInterval(() => {
-        sendImage(chatId, images[index]);
+    intervalId = setInterval(() => {
+        sendImage(images[index]);
         index = (index + 1) % images.length; // Циклический индекс
     }, interval);
+
+    // Обновляем клавиатуру
+    const options = {
+        reply_markup: {
+            keyboard: [
+                ['Остановить отправку изображений']
+            ],
+            resize_keyboard: true,
+            one_time_keyboard: true
+        }
+    };
+
+    bot.sendMessage(chatId, 'Отправка изображений запущена!', options);
 }
 
-// Запускаем отправку изображений
-startSendingImages();
+// Функция для остановки отправки изображений
+function stopSendingImages(chatId) {
+    if (!sendingImages) return; // Если не отправляем, ничего не делаем
+
+    clearInterval(intervalId); // Останавливаем интервал
+    sendingImages = false; // Сбрасываем флаг
+    console.log('Stopped sending images.');
+
+    // Обновляем клавиатуру
+    const options = {
+        reply_markup: {
+            keyboard: [
+                ['Запустить отправку изображений']
+            ],
+            resize_keyboard: true,
+            one_time_keyboard: true
+        }
+    };
+
+    bot.sendMessage(chatId, 'Отправка изображений остановлена!', options);
+}
+
+// Обработка текстовых сообщений
+bot.onText(/\/start/, (msg) => {
+    const chatId = msg.chat.id;
+
+    // Создаем клавиатуру с кнопками
+    const options = {
+        reply_markup: {
+            keyboard: [
+                ['Запустить отправку изображений']
+            ],
+            resize_keyboard: true,
+            one_time_keyboard: true
+        }
+    };
+
+    bot.sendMessage(chatId, 'Добро пожаловать! Выберите действие:', options);
+});
+
+// Обработка нажатий на кнопки
+bot.on('message', (msg) => {
+    const chatId = msg.chat.id;
+
+    if (msg.text === 'Запустить отправку изображений') {
+        startSendingImages(chatId);
+    } else if (msg.text === 'Остановить отправку изображений') {
+        stopSendingImages(chatId);
+    }
+});
