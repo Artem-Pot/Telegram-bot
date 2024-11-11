@@ -17,6 +17,8 @@ const imagesFolder = './img'; // Укажите путь к вашей папк�
 let sendingImages = false; // Флаг для отслеживания состояния отправки изображений
 let intervalId; // ID интервала
 let interval = 10000; // Интервал времени для отправки изображений (по умолчанию 10 секунд)
+let startTime; // Время начала отправки
+let endTime; // Время окончания отправки
 
 // Функция для получения списка изображений из папки
 function getImages() {
@@ -53,8 +55,36 @@ function startSendingImages(chatId) {
     let index = 0;
 
     intervalId = setInterval(() => {
-        sendImage(images[index]);
-        index = (index + 1) % images.length; // Циклический индекс
+        const currentTime = new Date();
+        const currentHours = currentTime.getHours();
+        const currentMinutes = currentTime.getMinutes();
+        const currentTotalMinutes = currentHours * 60 + currentMinutes;
+
+        const startTotalMinutes = startTime.getHours() * 60 + startTime.getMinutes();
+        const endTotalMinutes = endTime.getHours() * 60 + endTime.getMinutes();
+
+        // Проверяем, находится ли текущее время в заданном диапазоне
+        if (currentTotalMinutes >= startTotalMinutes && currentTotalMinutes < endTotalMinutes) {
+            sendImage(images[index]);
+            index = (index + 1) % images.length; // Циклический индекс
+        } else if (currentTotalMinutes >= endTotalMinutes) {
+            // Если текущее время превышает время окончания, останавливаем отправку и предлагаем новый выбор интервала
+            stopSendingImages(chatId);
+            bot.sendMessage(chatId, 'Время отправки изображений истекло.');
+
+            // Обновляем клавиатуру с кнопкой выбора интервала
+            const options = {
+                reply_markup: {
+                    keyboard: [
+                        ['Выбрать интервал']
+                    ],
+                    resize_keyboard: true,
+                    one_time_keyboard: true
+                }
+            };
+
+            bot.sendMessage(chatId, 'Выберите новый интервал отправки изображений:', options);
+        }
     }, interval);
 
     // Обновляем клавиатуру
@@ -78,19 +108,6 @@ function stopSendingImages(chatId) {
     clearInterval(intervalId); // Останавливаем интервал
     sendingImages = false; // Сбрасываем флаг
     console.log('Stopped sending images.');
-
-    // Обновляем клавиатуру
-    const options = {
-        reply_markup: {
-            keyboard: [
-                ['Выбрать интервал']
-            ],
-            resize_keyboard: true,
-            one_time_keyboard: true
-        }
-    };
-
-    bot.sendMessage(chatId, 'Отправка изображений остановлена!', options);
 }
 
 // Обработка текстовых сообщений
@@ -128,67 +145,51 @@ bot.on('message', (msg) => {
         };
 
         bot.sendMessage(chatId, 'Выберите интервал отправки изображений:', options);
-    } else if (msg.text === '5 секунд') {
-        interval = 5000; // Устанавливаем интервал 5 секунд
-        bot.sendMessage(chatId, 'Интервал установлен на 5 секунд. Нажмите "Запустить отправку изображений", чтобы начать.');
+    } else if (['5 секунд', '10 секунд', '15 секунд', '20 секунд'].includes(msg.text)) {
+        interval = parseInt(msg.text) * 1000; // Устанавливаем интервал в миллисекундах
+        bot.sendMessage(chatId, `Интервал установлен на ${msg.text}. Укажите время начала (чч:мм):`);
 
-        // Создаем кнопку для запуска отправки
-        const options = {
-            reply_markup: {
-                keyboard: [
-                    ['Запустить отправку изображений']
-                ],
-                resize_keyboard: true,
-                one_time_keyboard: true
+        // Переход к следующему шагу выбора времени
+        bot.once('message', (startTimeMsg) => {
+            const timeParts = startTimeMsg.text.split(':');
+            if (timeParts.length === 2) {
+                const hours = parseInt(timeParts[0]);
+                const minutes = parseInt(timeParts[1]);
+                startTime = new Date();
+                startTime.setHours(hours, minutes, 0); // Устанавливаем время начала
+                bot.sendMessage(chatId, `Время начала установлено на ${startTimeMsg.text}. Укажите время окончания (чч:мм):`);
+
+                // Переход к следующему шагу выбора времени
+                bot.once('message', (endTimeMsg) => {
+                    const endTimeParts = endTimeMsg.text.split(':');
+                    if (endTimeParts.length === 2) {
+                        const endHours = parseInt(endTimeParts[0]);
+                        const endMinutes = parseInt(endTimeParts[1]);
+                        endTime = new Date();
+                        endTime.setHours(endHours, endMinutes, 0); // Устанавливаем время окончания
+
+                        bot.sendMessage(chatId, 'Готово! Нажмите "Запустить отправку изображений", чтобы начать.');
+
+                        // Создаем кнопку для запуска отправки
+                        const options = {
+                            reply_markup: {
+                                keyboard: [
+                                    ['Запустить отправку изображений']
+                                ],
+                                resize_keyboard: true,
+                                one_time_keyboard: true
+                            }
+                        };
+
+                        bot.sendMessage(chatId, 'Теперь вы можете запустить отправку.', options);
+                    } else {
+                        bot.sendMessage(chatId, 'Неверный формат времени окончания. Пожалуйста, введите в формате чч:мм.');
+                    }
+                });
+            } else {
+                bot.sendMessage(chatId, 'Неверный формат времени начала. Пожалуйста, введите в формате чч:мм.');
             }
-        };
-
-        bot.sendMessage(chatId, 'Готово! Теперь вы можете запустить отправку.', options);
-    } else if (msg.text === '10 секунд') {
-        interval = 10000; // Устанавливаем интервал 10 секунд
-        bot.sendMessage(chatId, 'Интервал установлен на 10 секунд. Нажмите "Запустить отправку изображений", чтобы начать.');
-
-        const options = {
-            reply_markup: {
-                keyboard: [
-                    ['Запустить отправку изображений']
-                ],
-                resize_keyboard: true,
-                one_time_keyboard: true
-            }
-        };
-
-        bot.sendMessage(chatId, 'Готово! Теперь вы можете запустить отправку.', options);
-    } else if (msg.text === '15 секунд') {
-        interval = 15000; // Устанавливаем интервал 15 секунд
-        bot.sendMessage(chatId, 'Интервал установлен на 15 секунд. Нажмите "Запустить отправку изображений", чтобы начать.');
-
-        const options = {
-            reply_markup: {
-                keyboard: [
-                    ['Запустить отправку изображений']
-                ],
-                resize_keyboard: true,
-                one_time_keyboard: true
-            }
-        };
-
-        bot.sendMessage(chatId, 'Готово! Теперь вы можете запустить отправку.', options);
-    } else if (msg.text === '20 секунд') {
-        interval = 20000; // Устанавливаем интервал 20 секунд
-        bot.sendMessage(chatId, 'Интервал установлен на 20 секунд. Нажмите "Запустить отправку изображений", чтобы начать.');
-
-        const options = {
-            reply_markup: {
-                keyboard: [
-                    ['Запустить отправку изображений']
-                ],
-                resize_keyboard: true,
-                one_time_keyboard: true
-            }
-        };
-
-        bot.sendMessage(chatId, 'Готово! Теперь вы можете запустить отправку.', options);
+        });
     } else if (msg.text === 'Запустить отправку изображений') {
         startSendingImages(chatId);
     } else if (msg.text === 'Остановить отправку изображений') {
