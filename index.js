@@ -14,11 +14,9 @@ const chatId = '@TechnicalProgress';
 // Папка, из которой будут загружаться изображения
 const imagesFolder = './img'; // Укажите путь к вашей папке с изображениями
 
-// Интервал времени для отправки изображений (в миллисекундах)
-const interval = 10000; // 10 секунд
-
 let sendingImages = false; // Флаг для отслеживания состояния отправки изображений
 let intervalId; // ID интервала
+let interval = 10000; // Интервал времени для отправки изображений (по умолчанию 10 секунд)
 
 // Функция для получения списка изображений из папки
 function getImages() {
@@ -85,7 +83,7 @@ function stopSendingImages(chatId) {
     const options = {
         reply_markup: {
             keyboard: [
-                ['Запустить отправку изображений']
+                ['Выбрать интервал']
             ],
             resize_keyboard: true,
             one_time_keyboard: true
@@ -103,21 +101,95 @@ bot.onText(/\/start/, (msg) => {
     const options = {
         reply_markup: {
             keyboard: [
-                ['Запустить отправку изображений']
+                ['Выбрать интервал']
             ],
             resize_keyboard: true,
             one_time_keyboard: true
         }
     };
 
-    bot.sendMessage(chatId, 'Добро пожаловать! Выберите действие:', options);
+    bot.sendMessage(chatId, 'Добро пожаловать! Нажмите "Выбрать интервал", чтобы продолжить:', options);
 });
 
-// Обработка нажатий на кнопки
+// Обработка выбора интервала
 bot.on('message', (msg) => {
     const chatId = msg.chat.id;
 
-    if (msg.text === 'Запустить отправку изображений') {
+    if (msg.text === 'Выбрать интервал') {
+        const options = {
+            reply_markup: {
+                keyboard: [
+                    ['5 секунд', '10 секунд'],
+                    ['15 секунд', '20 секунд']
+                ],
+                resize_keyboard: true,
+                one_time_keyboard: true
+            }
+        };
+
+        bot.sendMessage(chatId, 'Выберите интервал отправки изображений:', options);
+    } else if (msg.text === '5 секунд') {
+        interval = 5000; // Устанавливаем интервал 5 секунд
+        bot.sendMessage(chatId, 'Интервал установлен на 5 секунд. Нажмите "Запустить отправку изображений", чтобы начать.');
+
+        // Создаем кнопку для запуска отправки
+        const options = {
+            reply_markup: {
+                keyboard: [
+                    ['Запустить отправку изображений']
+                ],
+                resize_keyboard: true,
+                one_time_keyboard: true
+            }
+        };
+
+        bot.sendMessage(chatId, 'Готово! Теперь вы можете запустить отправку.', options);
+    } else if (msg.text === '10 секунд') {
+        interval = 10000; // Устанавливаем интервал 10 секунд
+        bot.sendMessage(chatId, 'Интервал установлен на 10 секунд. Нажмите "Запустить отправку изображений", чтобы начать.');
+
+        const options = {
+            reply_markup: {
+                keyboard: [
+                    ['Запустить отправку изображений']
+                ],
+                resize_keyboard: true,
+                one_time_keyboard: true
+            }
+        };
+
+        bot.sendMessage(chatId, 'Готово! Теперь вы можете запустить отправку.', options);
+    } else if (msg.text === '15 секунд') {
+        interval = 15000; // Устанавливаем интервал 15 секунд
+        bot.sendMessage(chatId, 'Интервал установлен на 15 секунд. Нажмите "Запустить отправку изображений", чтобы начать.');
+
+        const options = {
+            reply_markup: {
+                keyboard: [
+                    ['Запустить отправку изображений']
+                ],
+                resize_keyboard: true,
+                one_time_keyboard: true
+            }
+        };
+
+        bot.sendMessage(chatId, 'Готово! Теперь вы можете запустить отправку.', options);
+    } else if (msg.text === '20 секунд') {
+        interval = 20000; // Устанавливаем интервал 20 секунд
+        bot.sendMessage(chatId, 'Интервал установлен на 20 секунд. Нажмите "Запустить отправку изображений", чтобы начать.');
+
+        const options = {
+            reply_markup: {
+                keyboard: [
+                    ['Запустить отправку изображений']
+                ],
+                resize_keyboard: true,
+                one_time_keyboard: true
+            }
+        };
+
+        bot.sendMessage(chatId, 'Готово! Теперь вы можете запустить отправку.', options);
+    } else if (msg.text === 'Запустить отправку изображений') {
         startSendingImages(chatId);
     } else if (msg.text === 'Остановить отправку изображений') {
         stopSendingImages(chatId);
