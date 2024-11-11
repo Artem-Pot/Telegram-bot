@@ -19,6 +19,7 @@ let intervalId; // ID интервала
 let interval = 10000; // Интервал времени для отправки изображений (по умолчанию 10 секунд)
 let startTime; // Время начала отправки
 let endTime; // Время окончания отправки
+let images; // Массив изображений
 
 // Функция для получения списка изображений из папки
 function getImages() {
@@ -45,7 +46,7 @@ function startSendingImages(chatId) {
     if (sendingImages) return; // Если уже отправляем, ничего не делаем
 
     sendingImages = true;
-    const images = getImages();
+    images = getImages(); // Получаем список изображений
     if (images.length === 0) {
         console.log('No images found in the specified folder.');
         sendingImages = false; // Сбрасываем флаг
@@ -65,8 +66,28 @@ function startSendingImages(chatId) {
 
         // Проверяем, находится ли текущее время в заданном диапазоне
         if (currentTotalMinutes >= startTotalMinutes && currentTotalMinutes < endTotalMinutes) {
-            sendImage(images[index]);
-            index = (index + 1) % images.length; // Циклический индекс
+            // **Отправляем изображение только если есть еще изображения**
+            if (index < images.length) {
+                sendImage(images[index]);
+                index++; // Увеличиваем индекс на 1
+            } else {
+                // **Если все изображения отправлены, останавливаем отправку**
+                stopSendingImages(chatId);
+                bot.sendMessage(chatId, 'Все изображения были успешно отправлены.');
+
+                // **Обновляем клавиатуру с кнопкой выбора интервала**
+                const options = {
+                    reply_markup: {
+                        keyboard: [
+                            ['Выбрать интервал']
+                        ],
+                        resize_keyboard: true,
+                        one_time_keyboard: true
+                    }
+                };
+
+                bot.sendMessage(chatId, 'Выберите новый интервал отправки изображений:', options);
+            }
         } else if (currentTotalMinutes >= endTotalMinutes) {
             // Если текущее время превышает время окончания, останавливаем отправку и предлагаем новый выбор интервала
             stopSendingImages(chatId);
