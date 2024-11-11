@@ -1,4 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
+const fs = require('fs');
+const path = require('path');
 
 // Ваш токен
 const token = '7217323400:AAG-59l0iLJ01a-rVGbS8qplGLgT1EyAa2U';
@@ -7,205 +9,49 @@ const token = '7217323400:AAG-59l0iLJ01a-rVGbS8qplGLgT1EyAa2U';
 const bot = new TelegramBot(token, { polling: true });
 
 // Замените на ваш идентификатор канала (например, @my_channel)
-const channelId = '@TechnicalProgress';
+const chatId = '@TechnicalProgress';
 
+// Папка, из которой будут загружаться изображения
+const imagesFolder = './img'; // Укажите путь к вашей папке с изображениями
 
-// Состояния для отслеживания этапов
-const stages = {
-  WAITING_FOR_CONTENT: 'waiting_for_content',
-  WAITING_FOR_DATE: 'waiting_for_date',
-  WAITING_FOR_TIME: 'waiting_for_time',
-};
+// Интервал времени для отправки изображений (в миллисекундах)
+const interval = 10000; // 10 секунд
 
-// Переменные для хранения информации о посте
-let postDetails = {};
-
-// Обработка команды /start
-bot.onText(/\/start/, (msg) => {
-  const chatId = msg.chat.id;
-  bot.sendMessage(chatId, 'Привет! Чтобы создать пост, нажмите кнопку "Создать пост".', {
-      reply_markup: {
-          keyboard: [
-              [{ text: 'Создать пост' }]
-          ],
-          resize_keyboard: true,
-          one_time_keyboard: true
-      }
-  });
-});
-
-// Обработка нажатия кнопки "Создать пост"
-bot.onText(/Создать пост/, (msg) => {
-  const chatId = msg.chat.id;
-  postDetails[chatId] = { stage: stages.WAITING_FOR_CONTENT }; // Устанавливаем состояние
-  bot.sendMessage(chatId, 'Отправьте текст, фото или видео для поста:');
-});
-
-// Обработка нажатия кнопки "Отмена"
-function cancelPost(chatId) {
-  delete postDetails[chatId]; // Очистить данные поста
-  bot.sendMessage(chatId, 'Создание поста отменено. Нажмите "Создать пост", чтобы начать заново.', {
-      reply_markup: {
-          keyboard: [
-              [{ text: 'Создать пост' }]
-          ],
-          resize_keyboard: true,
-          one_time_keyboard: true
-      }
-  });
+// Функция для получения списка изображений из папки
+function getImages() {
+    return fs.readdirSync(imagesFolder).filter(file => {
+        return /\.(jpg|jpeg|png|gif)$/.test(file); // Поддерживаемые форматы изображений
+    });
 }
 
-// Обработка входящих сообщений
-bot.on('message', (msg) => {
-  const chatId = msg.chat.id;
-
-  if (!postDetails[chatId]) {
-      return; // Если нет данных о посте, игнорируем сообщение
-  }
-
-  if (msg.text === 'Отмена') {
-      cancelPost(chatId);
-      return;
-  }
-
-  if (postDetails[chatId].stage === stages.WAITING_FOR_CONTENT) {
-      // Проверка на наличие текста или медиа
-      if (msg.text) {
-          postDetails[chatId].text = msg.text; // Сохраняем текст поста
-          bot.sendMessage(chatId, 'Теперь отправьте фото или видео (или просто отправьте текст) для поста:');
-      } else if (msg.photo) {
-          postDetails[chatId].media = { type: 'photo', file_id: msg.photo[msg.photo.length - 1].file_id };
-          bot.sendMessage(chatId, 'Фото сохранено. Теперь отправьте текст для поста:');
-      } else if (msg.video) {
-          postDetails[chatId].media = { type: 'video', file_id: msg.video.file_id };
-          bot.sendMessage(chatId, 'Видео сохранено. Теперь отправьте текст для поста:');
-      }
-
-      // Переход к выбору даты
-      if (postDetails[chatId].text && (postDetails[chatId].media || msg.photo || msg.video)) {
-          postDetails[chatId].stage = stages.WAITING_FOR_DATE;
-          bot.sendMessage(chatId, 'Выберите дату для отправки поста:', {
-              reply_markup: {
-                  keyboard: [
-                      [
-                          { text: 'Сегодня' },
-                          { text: 'Завтра' },
-                          { text: 'Послезавтра' },
-                          { text: 'Отправить немедленно' },
-                          { text: 'Отмена' } // Кнопка "Отмена"
-                      ]
-                  ],
-                  one_time_keyboard: true,
-                  resize_keyboard: true,
-              }
-          });
-      }
-  } else if (postDetails[chatId].stage === stages.WAITING_FOR_DATE) {
-      if (msg.text === 'Отправить немедленно') {
-          // Немедленная отправка
-          sendPost(chatId);
-          delete postDetails[chatId]; // Очистить данные поста
-      } else {
-          const today = new Date();
-          let selectedDate;
-
-          if (msg.text === 'Сегодня') {
-              selectedDate = today;
-          } else if (msg.text === 'Завтра') {
-              selectedDate = new Date(today);
-              selectedDate.setDate(today.getDate() + 1);
-          } else if (msg.text === 'Послезавтра') {
-              selectedDate = new Date(today);
-              selectedDate.setDate(today.getDate() + 2);
-          }
-
-          if (selectedDate) {
-              postDetails[chatId].date = selectedDate;
-
-              // Запрос выбора времени
-              postDetails[chatId].stage = stages.WAITING_FOR_TIME;
-              bot.sendMessage(chatId, 'Пожалуйста, выберите время отправки поста (в формате ЧЧ:ММ):', {
-                  reply_markup: {
-                      keyboard: [
-                          [{ text: 'Отмена' }] // Кнопка "Отмена"
-                      ],
-                      one_time_keyboard: true,
-                      resize_keyboard: true,
-                  }
-              });
-          } else {
-              bot.sendMessage(chatId, 'Пожалуйста, выберите дату: Сегодня, Завтра или Послезавтра.');
-          }
-      }
-  } else if (postDetails[chatId].stage === stages.WAITING_FOR_TIME) {
-      const [hours, minutes] = msg.text.split(':').map(Number);
-      if (hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
-          postDetails[chatId].time = { hours, minutes };
-          schedulePost(chatId); // Запланировать отправку поста
-      } else {
-          bot.sendMessage(chatId, 'Пожалуйста, введите корректное время в формате ЧЧ:ММ.');
-      }
-  }
-});
-
-// Функция для отправки поста
-function sendPost(chatId) {
-  const { media, text } = postDetails[chatId];
-
-  if (media) {
-      if (media.type === 'photo') {
-          bot.sendPhoto(channelId, media.file_id, { caption: text || '' });
-      } else if (media.type === 'video') {
-          bot.sendVideo(channelId, media.file_id, { caption: text || '' });
-      }
-  } else if (text) {
-      bot.sendMessage(channelId, text);
-  }
-
-  bot.sendMessage(chatId, 'Ваш пост успешно отправлен в канал. Нажмите "Создать пост", чтобы создать новый.', {
-      reply_markup: {
-          keyboard: [
-              [{ text: 'Создать пост' }]
-          ],
-          resize_keyboard: true,
-          one_time_keyboard: true
-      }
-  });
+// Функция для отправки изображения
+function sendImage(chatId, image) {
+    const imagePath = path.join(imagesFolder, image);
+    console.log(`Attempting to send image: ${imagePath}`); // Отладочная информация
+    bot.sendPhoto(chatId, imagePath)
+        .then(() => {
+            console.log(`Sent: ${image}`);
+        })
+        .catch(error => {
+            console.error(`Error sending image: ${error}`);
+        });
 }
 
-// Функция для планирования отправки поста
-function schedulePost(chatId) {
-  const { date, time, media, text } = postDetails[chatId];
-  const sendTime = new Date(date);
-  sendTime.setHours(time.hours);
-  sendTime.setMinutes(time.minutes);
+// Основная функция для отправки изображений через заданный интервал
+function startSendingImages() {
+    const images = getImages();
+    if (images.length === 0) {
+        console.log('No images found in the specified folder.');
+        return; // Если нет изображений, выходим из функции
+    }
 
-  const delay = sendTime.getTime() - Date.now(); // Рассчитать задержку
+    let index = 0;
 
-  if (delay > 0) {
-      setTimeout(() => {
-          sendPost(chatId);
-          delete postDetails[chatId]; // Очистить данные поста
-      }, delay);
-      bot.sendMessage(chatId, `Пост запланирован на ${sendTime.toLocaleString()}. Нажмите "Создать пост", чтобы создать новый.`, {
-          reply_markup: {
-              keyboard: [
-                  [{ text: 'Создать пост' }]
-              ],
-              resize_keyboard: true,
-              one_time_keyboard: true
-          }
-      });
-  } else {
-      bot.sendMessage(chatId, 'Указанное время уже прошло. Пожалуйста, попробуйте снова.', {
-          reply_markup: {
-              keyboard: [
-                  [{ text: 'Создать пост' }]
-              ],
-              resize_keyboard: true,
-              one_time_keyboard: true
-          }
-      });
-      delete postDetails[chatId]; // Очистить данные поста
-  }
+    setInterval(() => {
+        sendImage(chatId, images[index]);
+        index = (index + 1) % images.length; // Циклический индекс
+    }, interval);
 }
+
+// Запускаем отправку изображений
+startSendingImages();
