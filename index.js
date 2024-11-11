@@ -10,10 +10,6 @@ const bot = new TelegramBot(token, { polling: true });
 const channelId = '@TechnicalProgress';
 
 
-
-
-
-
 // Состояния для отслеживания этапов
 const stages = {
   WAITING_FOR_CONTENT: 'waiting_for_content',
@@ -27,15 +23,37 @@ let postDetails = {};
 // Обработка команды /start
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
-  bot.sendMessage(chatId, 'Привет! Чтобы создать пост, отправьте команду /create.');
+  bot.sendMessage(chatId, 'Привет! Чтобы создать пост, нажмите кнопку "Создать пост".', {
+      reply_markup: {
+          keyboard: [
+              [{ text: 'Создать пост' }]
+          ],
+          resize_keyboard: true,
+          one_time_keyboard: true
+      }
+  });
 });
 
-// Обработка команды /create
-bot.onText(/\/create/, (msg) => {
+// Обработка нажатия кнопки "Создать пост"
+bot.onText(/Создать пост/, (msg) => {
   const chatId = msg.chat.id;
   postDetails[chatId] = { stage: stages.WAITING_FOR_CONTENT }; // Устанавливаем состояние
   bot.sendMessage(chatId, 'Отправьте текст, фото или видео для поста:');
 });
+
+// Обработка нажатия кнопки "Отмена"
+function cancelPost(chatId) {
+  delete postDetails[chatId]; // Очистить данные поста
+  bot.sendMessage(chatId, 'Создание поста отменено. Нажмите "Создать пост", чтобы начать заново.', {
+      reply_markup: {
+          keyboard: [
+              [{ text: 'Создать пост' }]
+          ],
+          resize_keyboard: true,
+          one_time_keyboard: true
+      }
+  });
+}
 
 // Обработка входящих сообщений
 bot.on('message', (msg) => {
@@ -43,6 +61,11 @@ bot.on('message', (msg) => {
 
   if (!postDetails[chatId]) {
       return; // Если нет данных о посте, игнорируем сообщение
+  }
+
+  if (msg.text === 'Отмена') {
+      cancelPost(chatId);
+      return;
   }
 
   if (postDetails[chatId].stage === stages.WAITING_FOR_CONTENT) {
@@ -68,7 +91,8 @@ bot.on('message', (msg) => {
                           { text: 'Сегодня' },
                           { text: 'Завтра' },
                           { text: 'Послезавтра' },
-                          { text: 'Отправить немедленно' } // Кнопка для немедленной отправки
+                          { text: 'Отправить немедленно' },
+                          { text: 'Отмена' } // Кнопка "Отмена"
                       ]
                   ],
                   one_time_keyboard: true,
@@ -100,7 +124,15 @@ bot.on('message', (msg) => {
 
               // Запрос выбора времени
               postDetails[chatId].stage = stages.WAITING_FOR_TIME;
-              bot.sendMessage(chatId, 'Пожалуйста, выберите время отправки поста (в формате ЧЧ:ММ):');
+              bot.sendMessage(chatId, 'Пожалуйста, выберите время отправки поста (в формате ЧЧ:ММ):', {
+                  reply_markup: {
+                      keyboard: [
+                          [{ text: 'Отмена' }] // Кнопка "Отмена"
+                      ],
+                      one_time_keyboard: true,
+                      resize_keyboard: true,
+                  }
+              });
           } else {
               bot.sendMessage(chatId, 'Пожалуйста, выберите дату: Сегодня, Завтра или Послезавтра.');
           }
@@ -119,7 +151,7 @@ bot.on('message', (msg) => {
 // Функция для отправки поста
 function sendPost(chatId) {
   const { media, text } = postDetails[chatId];
-  
+
   if (media) {
       if (media.type === 'photo') {
           bot.sendPhoto(channelId, media.file_id, { caption: text || '' });
@@ -129,8 +161,16 @@ function sendPost(chatId) {
   } else if (text) {
       bot.sendMessage(channelId, text);
   }
-  
-  bot.sendMessage(chatId, 'Ваш пост успешно отправлен в канал.');
+
+  bot.sendMessage(chatId, 'Ваш пост успешно отправлен в канал. Нажмите "Создать пост", чтобы создать новый.', {
+      reply_markup: {
+          keyboard: [
+              [{ text: 'Создать пост' }]
+          ],
+          resize_keyboard: true,
+          one_time_keyboard: true
+      }
+  });
 }
 
 // Функция для планирования отправки поста
@@ -147,9 +187,25 @@ function schedulePost(chatId) {
           sendPost(chatId);
           delete postDetails[chatId]; // Очистить данные поста
       }, delay);
-      bot.sendMessage(chatId, `Пост запланирован на ${sendTime.toLocaleString()}.`);
+      bot.sendMessage(chatId, `Пост запланирован на ${sendTime.toLocaleString()}. Нажмите "Создать пост", чтобы создать новый.`, {
+          reply_markup: {
+              keyboard: [
+                  [{ text: 'Создать пост' }]
+              ],
+              resize_keyboard: true,
+              one_time_keyboard: true
+          }
+      });
   } else {
-      bot.sendMessage(chatId, 'Указанное время уже прошло. Пожалуйста, попробуйте снова.');
+      bot.sendMessage(chatId, 'Указанное время уже прошло. Пожалуйста, попробуйте снова.', {
+          reply_markup: {
+              keyboard: [
+                  [{ text: 'Создать пост' }]
+              ],
+              resize_keyboard: true,
+              one_time_keyboard: true
+          }
+      });
       delete postDetails[chatId]; // Очистить данные поста
   }
 }
