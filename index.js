@@ -11,46 +11,64 @@ const bot = new TelegramBot(token, { polling: true });
 // Замените на ваш идентификатор канала (например, @my_channel)
 const chatId = '@TechnicalProgress';
 
-// Папка, из которой будут загружаться изображения
-const imagesFolder = './img'; // Укажите путь к вашей папке с изображениями
+// Папка, из которой будут загружаться изображения и видео
+const mediaFolder = './img'; // Укажите путь к вашей папке с медиафайлами
 
-let sendingImages = false; // Флаг для отслеживания состояния отправки изображений
+
+
+
+let sendingMedia = false; // Флаг для отслеживания состояния отправки медиафайлов
 let intervalId; // ID интервала
-let interval = 10000; // Интервал времени для отправки изображений (по умолчанию 10 секунд)
+let interval = 10000; // Интервал времени для отправки медиафайлов (по умолчанию 10 секунд)
 let startTime; // Время начала отправки
 let endTime; // Время окончания отправки
-let images; // Массив изображений
+let mediaFiles; // Массив медиафайлов
 
-// Функция для получения списка изображений из папки
-function getImages() {
-    return fs.readdirSync(imagesFolder).filter(file => {
-        return /\.(jpg|jpeg|png|gif)$/.test(file); // Поддерживаемые форматы изображений
+
+
+// Функция для получения списка медиафайлов из папки
+function getMediaFiles() {
+    return fs.readdirSync(mediaFolder).filter(file => {
+        return /\.(jpg|jpeg|png|gif|mp4|mov|avi)$/.test(file); // Поддерживаемые форматы изображений и видео
     });
 }
 
-// Функция для отправки изображения
-function sendImage(image) {
-    const imagePath = path.join(imagesFolder, image);
-    console.log(`Attempting to send image: ${imagePath}`); // Отладочная информация
-    bot.sendPhoto(chatId, imagePath)
-        .then(() => {
-            console.log(`Sent: ${image}`);
-        })
-        .catch(error => {
-            console.error(`Error sending image: ${error}`);
-        });
+// Функция для отправки медиафайла
+function sendMediaFile(mediaFile) {
+    const mediaPath = path.join(mediaFolder, mediaFile);
+    console.log(`Attempting to send media file: ${mediaPath}`); // Отладочная информация
+
+    // Проверяем тип файла и отправляем соответствующий метод
+    const isVideo = /\.(mp4|mov|avi)$/.test(mediaFile);
+    if (isVideo) {
+        bot.sendVideo(chatId, mediaPath)
+            .then(() => {
+                console.log(`Sent video: ${mediaFile}`);
+            })
+            .catch(error => {
+                console.error(`Error sending video: ${error}`);
+            });
+    } else {
+        bot.sendPhoto(chatId, mediaPath)
+            .then(() => {
+                console.log(`Sent image: ${mediaFile}`);
+            })
+            .catch(error => {
+                console.error(`Error sending image: ${error}`);
+            });
+    }
 }
 
-// Основная функция для отправки изображений через заданный интервал
-function startSendingImages(chatId) {
-    if (sendingImages) return; // Если уже отправляем, ничего не делаем
+// Основная функция для отправки медиафайлов через заданный интервал
+function startSendingMedia(chatId) {
+    if (sendingMedia) return; // Если уже отправляем, ничего не делаем
 
-    sendingImages = true;
-    images = getImages(); // Получаем список изображений
-    if (images.length === 0) {
-        console.log('No images found in the specified folder.');
-        sendingImages = false; // Сбрасываем флаг
-        return; // Если нет изображений, выходим из функции
+    sendingMedia = true;
+    mediaFiles = getMediaFiles(); // Получаем список медиафайлов
+    if (mediaFiles.length === 0) {
+        console.log('No media files found in the specified folder.');
+        sendingMedia = false; // Сбрасываем флаг
+        return; // Если нет медиафайлов, выходим из функции
     }
 
     let index = 0;
@@ -66,14 +84,14 @@ function startSendingImages(chatId) {
 
         // Проверяем, находится ли текущее время в заданном диапазоне
         if (currentTotalMinutes >= startTotalMinutes && currentTotalMinutes < endTotalMinutes) {
-            // **Отправляем изображение только если есть еще изображения**
-            if (index < images.length) {
-                sendImage(images[index]);
+            // **Отправляем медиафайл только если есть еще медиафайлы**
+            if (index < mediaFiles.length) {
+                sendMediaFile(mediaFiles[index]);
                 index++; // Увеличиваем индекс на 1
             } else {
-                // **Если все изображения отправлены, останавливаем отправку**
-                stopSendingImages(chatId);
-                bot.sendMessage(chatId, 'Все изображения были успешно отправлены.');
+                // **Если все медиафайлы отправлены, останавливаем отправку**
+                stopSendingMedia(chatId);
+                bot.sendMessage(chatId, 'Все медиафайлы были успешно отправлены.');
 
                 // **Обновляем клавиатуру с кнопкой выбора интервала**
                 const options = {
@@ -86,12 +104,12 @@ function startSendingImages(chatId) {
                     }
                 };
 
-                bot.sendMessage(chatId, 'Выберите новый интервал отправки изображений:', options);
+                bot.sendMessage(chatId, 'Выберите новый интервал отправки медиафайлов:', options);
             }
         } else if (currentTotalMinutes >= endTotalMinutes) {
             // Если текущее время превышает время окончания, останавливаем отправку и предлагаем новый выбор интервала
-            stopSendingImages(chatId);
-            bot.sendMessage(chatId, 'Время отправки изображений истекло.');
+            stopSendingMedia(chatId);
+            bot.sendMessage(chatId, 'Время отправки медиафайлов истекло.');
 
             // Обновляем клавиатуру с кнопкой выбора интервала
             const options = {
@@ -104,7 +122,7 @@ function startSendingImages(chatId) {
                 }
             };
 
-            bot.sendMessage(chatId, 'Выберите новый интервал отправки изображений:', options);
+            bot.sendMessage(chatId, 'Выберите новый интервал отправки медиафайлов:', options);
         }
     }, interval);
 
@@ -112,23 +130,23 @@ function startSendingImages(chatId) {
     const options = {
         reply_markup: {
             keyboard: [
-                ['Остановить отправку изображений']
+                ['Остановить отправку медиафайлов']
             ],
             resize_keyboard: true,
             one_time_keyboard: true
         }
     };
 
-    bot.sendMessage(chatId, 'Отправка изображений запущена!', options);
+    bot.sendMessage(chatId, 'Отправка медиафайлов запущена!', options);
 }
 
-// Функция для остановки отправки изображений
-function stopSendingImages(chatId) {
-    if (!sendingImages) return; // Если не отправляем, ничего не делаем
+// Функция для остановки отправки медиафайлов
+function stopSendingMedia(chatId) {
+    if (!sendingMedia) return; // Если не отправляем, ничего не делаем
 
     clearInterval(intervalId); // Останавливаем интервал
-    sendingImages = false; // Сбрасываем флаг
-    console.log('Stopped sending images.');
+    sendingMedia = false; // Сбрасываем флаг
+    console.log('Stopped sending media files.');
 }
 
 // Обработка текстовых сообщений
@@ -165,7 +183,7 @@ bot.on('message', (msg) => {
             }
         };
 
-        bot.sendMessage(chatId, 'Выберите интервал отправки изображений:', options);
+        bot.sendMessage(chatId, 'Выберите интервал отправки медиафайлов:', options);
     } else if (['5 секунд', '10 секунд', '15 секунд', '20 секунд'].includes(msg.text)) {
         interval = parseInt(msg.text) * 1000; // Устанавливаем интервал в миллисекундах
         bot.sendMessage(chatId, `Интервал установлен на ${msg.text}. Укажите время начала (чч:мм):`);
@@ -189,13 +207,13 @@ bot.on('message', (msg) => {
                         endTime = new Date();
                         endTime.setHours(endHours, endMinutes, 0); // Устанавливаем время окончания
 
-                        bot.sendMessage(chatId, 'Готово! Нажмите "Запустить отправку изображений", чтобы начать.');
+                        bot.sendMessage(chatId, 'Готово! Нажмите "Запустить отправку медиафайлов", чтобы начать.');
 
                         // Создаем кнопку для запуска отправки
                         const options = {
                             reply_markup: {
                                 keyboard: [
-                                    ['Запустить отправку изображений']
+                                    ['Запустить отправку медиафайлов']
                                 ],
                                 resize_keyboard: true,
                                 one_time_keyboard: true
@@ -211,9 +229,9 @@ bot.on('message', (msg) => {
                 bot.sendMessage(chatId, 'Неверный формат времени начала. Пожалуйста, введите в формате чч:мм.');
             }
         });
-    } else if (msg.text === 'Запустить отправку изображений') {
-        startSendingImages(chatId);
-    } else if (msg.text === 'Остановить отправку изображений') {
-        stopSendingImages(chatId);
+    } else if (msg.text === 'Запустить отправку медиафайлов') {
+        startSendingMedia(chatId);
+    } else if (msg.text === 'Остановить отправку медиафайлов') {
+        stopSendingMedia(chatId);
     }
 });
