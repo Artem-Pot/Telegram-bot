@@ -14,17 +14,12 @@ const chatId = '@TechnicalProgress';
 // Папка, из которой будут загружаться изображения и видео
 const mediaFolder = './img'; // Укажите путь к вашей папке с медиафайлами
 
-
-
-
 let sendingMedia = false; // Флаг для отслеживания состояния отправки медиафайлов
 let intervalId; // ID интервала
 let interval = 10000; // Интервал времени для отправки медиафайлов (по умолчанию 10 секунд)
 let startTime; // Время начала отправки
 let endTime; // Время окончания отправки
 let mediaFiles; // Массив медиафайлов
-
-
 
 // Функция для получения списка медиафайлов из папки
 function getMediaFiles() {
@@ -186,49 +181,75 @@ bot.on('message', (msg) => {
         bot.sendMessage(chatId, 'Выберите интервал отправки медиафайлов:', options);
     } else if (['5 секунд', '10 секунд', '15 секунд', '20 секунд'].includes(msg.text)) {
         interval = parseInt(msg.text) * 1000; // Устанавливаем интервал в миллисекундах
-        bot.sendMessage(chatId, `Интервал установлен на ${msg.text}. Укажите время начала (чч:мм):`);
-
-        // Переход к следующему шагу выбора времени
-        bot.once('message', (startTimeMsg) => {
-            const timeParts = startTimeMsg.text.split(':');
+        bot.sendMessage(chatId, `Интервал установлен на ${msg.text}. Выберите время начала:`, {
+            reply_markup: {
+                keyboard: [
+                    ['8:00', '9:00', '10:00', '11:00', '12:00', 'СВОЁ ВРЕМЯ'],
+                ],
+                resize_keyboard: true,
+                one_time_keyboard: true
+            }
+        });
+    } else if (['8:00', '9:00', '10:00', '11:00', '12:00'].includes(msg.text)) {
+        const timeParts = msg.text.split(':');
+        const hours = parseInt(timeParts[0]);
+        const minutes = parseInt(timeParts[1]);
+        startTime = new Date();
+        startTime.setHours(hours, minutes, 0); // Устанавливаем время начала
+        bot.sendMessage(chatId, 'Теперь выберите время окончания:', {
+            reply_markup: {
+                keyboard: [
+                    ['19:00', '20:00', '21:00', '22:00', 'СВОЁ ВРЕМЯ'],
+                ],
+                resize_keyboard: true,
+                one_time_keyboard: true
+            }
+        });
+    } else if (msg.text === 'СВОЁ ВРЕМЯ') {
+        bot.sendMessage(chatId, 'Введите своё время (чч:мм):');
+        bot.once('message', (timeMsg) => {
+            const timeParts = timeMsg.text.split(':');
             if (timeParts.length === 2) {
                 const hours = parseInt(timeParts[0]);
                 const minutes = parseInt(timeParts[1]);
                 startTime = new Date();
                 startTime.setHours(hours, minutes, 0); // Устанавливаем время начала
-                bot.sendMessage(chatId, `Время начала установлено на ${startTimeMsg.text}. Укажите время окончания (чч:мм):`);
 
-                // Переход к следующему шагу выбора времени
-                bot.once('message', (endTimeMsg) => {
-                    const endTimeParts = endTimeMsg.text.split(':');
-                    if (endTimeParts.length === 2) {
-                        const endHours = parseInt(endTimeParts[0]);
-                        const endMinutes = parseInt(endTimeParts[1]);
-                        endTime = new Date();
-                        endTime.setHours(endHours, endMinutes, 0); // Устанавливаем время окончания
-
-                        bot.sendMessage(chatId, 'Готово! Нажмите "Запустить отправку медиафайлов", чтобы начать.');
-
-                        // Создаем кнопку для запуска отправки
-                        const options = {
-                            reply_markup: {
-                                keyboard: [
-                                    ['Запустить отправку медиафайлов']
-                                ],
-                                resize_keyboard: true,
-                                one_time_keyboard: true
-                            }
-                        };
-
-                        bot.sendMessage(chatId, 'Теперь вы можете запустить отправку.', options);
-                    } else {
-                        bot.sendMessage(chatId, 'Неверный формат времени окончания. Пожалуйста, введите в формате чч:мм.');
+                // Теперь задаем время окончания
+                bot.sendMessage(chatId, 'Теперь выберите время окончания:', {
+                    reply_markup: {
+                        keyboard: [
+                            ['19:00', '20:00', '21:00', '22:00', 'СВОЁ ВРЕМЯ'],
+                        ],
+                        resize_keyboard: true,
+                        one_time_keyboard: true
                     }
                 });
             } else {
-                bot.sendMessage(chatId, 'Неверный формат времени начала. Пожалуйста, введите в формате чч:мм.');
+                bot.sendMessage(chatId, 'Неверный формат времени. Пожалуйста, введите в формате чч:мм.');
             }
         });
+    } else if (['19:00', '20:00', '21:00', '22:00'].includes(msg.text)) {
+        const timeParts = msg.text.split(':');
+        const hours = parseInt(timeParts[0]);
+        const minutes = parseInt(timeParts[1]);
+        endTime = new Date();
+        endTime.setHours(hours, minutes, 0); // Устанавливаем время окончания
+
+        bot.sendMessage(chatId, 'Готово! Нажмите "Запустить отправку медиафайлов", чтобы начать.');
+
+        // Создаем кнопку для запуска отправки
+        const options = {
+            reply_markup: {
+                keyboard: [
+                    ['Запустить отправку медиафайлов']
+                ],
+                resize_keyboard: true,
+                one_time_keyboard: true
+            }
+        };
+
+        bot.sendMessage(chatId, 'Теперь вы можете запустить отправку.', options);
     } else if (msg.text === 'Запустить отправку медиафайлов') {
         startSendingMedia(chatId);
     } else if (msg.text === 'Остановить отправку медиафайлов') {
