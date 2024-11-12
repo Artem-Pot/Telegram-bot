@@ -281,7 +281,7 @@ bot.on('message', (msg) => {
         endTime = null; // Сброс времени окончания
         intervalId = null; // Сброс ID интервала
         interval = 10000; // Сброс интервала к значению по умолчанию
-        showSubfolders();
+        // showSubfolders();
 
     } else if (msg.text === 'Отмена') {
         // Сброс всех переменных и возврат на начальный экран
@@ -294,5 +294,6 @@ bot.on('message', (msg) => {
         endTime = null; // Сброс времени окончания
         intervalId = null; // Сброс ID интервала
         interval = 10000; // Сброс интервала к значению по умолчанию
+
     }
 });
