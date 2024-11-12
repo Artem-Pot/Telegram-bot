@@ -25,6 +25,13 @@ function getMediaFiles() {
     });
 }
 
+// Функция для получения списка вложенных папок
+function getSubfolders(directory) {
+    return fs.readdirSync(directory).filter(file => {
+        return fs.lstatSync(path.join(directory, file)).isDirectory(); // Возвращаем только папки
+    });
+}
+
 // Функция для отправки медиафайла
 function sendMediaFile(mediaFile) {
     const mediaPath = path.join(mediaFolder, mediaFile);
@@ -175,6 +182,26 @@ function showEndTimeOptions() {
     bot.sendMessage(chatId, 'Теперь выберите время окончания:', options);
 }
 
+// Функция для отображения подпапок в папке media
+function showSubfolders() {
+    const subfolders = getSubfolders(mediaFolder);
+    if (subfolders.length === 0) {
+        bot.sendMessage(chatId, 'В указанной папке нет вложенных папок.');
+        showStartOptions(); // Возвращаем к начальным опциям
+        return;
+    }
+
+    const options = {
+        reply_markup: {
+            keyboard: subfolders.map(folder => [folder]), // Создаем кнопки для каждого подкаталога
+            resize_keyboard: true,
+            one_time_keyboard: true
+        }
+    };
+
+    bot.sendMessage(chatId, 'Выберите папку с медиафайлами:', options);
+}
+
 // Обработка текстовых сообщений
 bot.onText(/\/start/, (msg) => {
     chatId = msg.chat.id; // Сохраняем идентификатор чата
@@ -186,18 +213,11 @@ bot.on('message', (msg) => {
     chatId = msg.chat.id; // Обновляем идентификатор чата
 
     if (msg.text === 'Выбрать папку с медиафайлами') {
-        bot.sendMessage(chatId, 'Введите путь к папке с медиафайлами: Пример media/11 ноября');
-        bot.once('message', (pathMsg) => {
-            const newPath = pathMsg.text;
-            if (fs.existsSync(newPath) && fs.lstatSync(newPath).isDirectory()) {
-                mediaFolder = newPath; // Обновляем путь к папке
-                bot.sendMessage(chatId, `Папка с медиафайлами установлена: ${mediaFolder}`);
-                showIntervalOptions(); // Переходим к выбору интервала
-            } else {
-                bot.sendMessage(chatId, 'Указанный путь неверен. Пожалуйста, попробуйте снова.');
-                showStartOptions(); // Возвращаем к начальным опциям
-            }
-        });
+        showSubfolders(); // Вызываем функцию для отображения подпапок
+    } else if (getSubfolders(mediaFolder).includes(msg.text)) {
+        mediaFolder = path.join(mediaFolder, msg.text); // Обновляем путь к выбранной папке
+        bot.sendMessage(chatId, `Папка с медиафайлами установлена: ${mediaFolder}`);
+        showIntervalOptions(); // Переходим к выбору интервала
     } else if (['5 секунд', '10 секунд', '15 секунд', '20 секунд'].includes(msg.text)) {
         interval = parseInt(msg.text) * 1000; // Устанавливаем интервал в миллисекундах
         bot.sendMessage(chatId, `Интервал установлен на ${msg.text}.`, {
@@ -253,6 +273,16 @@ bot.on('message', (msg) => {
     } else if (msg.text === 'Остановить отправку медиафайлов') {
         stopSendingMedia();
         showStartOptions();
+       
+        mediaFolder = './media'; // Сброс к папке по умолчанию
+        sendingMedia = false; // Сброс флага отправки
+        clearInterval(intervalId); // Остановка интервала, если он запущен
+        startTime = null; // Сброс времени начала
+        endTime = null; // Сброс времени окончания
+        intervalId = null; // Сброс ID интервала
+        interval = 10000; // Сброс интервала к значению по умолчанию
+        showSubfolders();
+
     } else if (msg.text === 'Отмена') {
         // Сброс всех переменных и возврат на начальный экран
         showStartOptions(); // Показать начальные опции
@@ -264,7 +294,5 @@ bot.on('message', (msg) => {
         endTime = null; // Сброс времени окончания
         intervalId = null; // Сброс ID интервала
         interval = 10000; // Сброс интервала к значению по умолчанию
-
-        
     }
 });
