@@ -116,14 +116,14 @@ function showStartOptions() {
     const options = {
         reply_markup: {
             keyboard: [
-                ['Запустить автопост', 'Выбрать папку с медиафайлами']
+                ['Выбрать папку с медиафайлами']
             ],
             resize_keyboard: true,
             one_time_keyboard: true
         }
     };
 
-    bot.sendMessage(chatId, 'Добро пожаловать! Нажмите "Запустить автопост" или "Выбрать папку с медиафайлами", чтобы продолжить:', options);
+    bot.sendMessage(chatId, 'Добро пожаловать! Нажмите "Выбрать папку с медиафайлами", чтобы продолжить:', options);
 }
 
 // Функция для отображения опций интервала
@@ -140,7 +140,7 @@ function showIntervalOptions() {
         }
     };
 
-    bot.sendMessage(chatId, 'Выберите новый интервал отправки медиафайлов:', options);
+    bot.sendMessage(chatId, 'Выберите интервал отправки медиафайлов:', options);
 }
 
 // Функция для отображения опций времени
@@ -185,16 +185,14 @@ bot.onText(/\/start/, (msg) => {
 bot.on('message', (msg) => {
     chatId = msg.chat.id; // Обновляем идентификатор чата
 
-    if (msg.text === 'Запустить автопост') {
-        showIntervalOptions();
-    } else if (msg.text === 'Выбрать папку с медиафайлами') {
-        bot.sendMessage(chatId, 'Введите путь к папке с медиафайлами:');
+    if (msg.text === 'Выбрать папку с медиафайлами') {
+        bot.sendMessage(chatId, 'Введите путь к папке с медиафайлами: Пример media/11 ноября');
         bot.once('message', (pathMsg) => {
             const newPath = pathMsg.text;
             if (fs.existsSync(newPath) && fs.lstatSync(newPath).isDirectory()) {
                 mediaFolder = newPath; // Обновляем путь к папке
                 bot.sendMessage(chatId, `Папка с медиафайлами установлена: ${mediaFolder}`);
-                showStartOptions(); // Возвращаем к начальным опциям
+                showIntervalOptions(); // Переходим к выбору интервала
             } else {
                 bot.sendMessage(chatId, 'Указанный путь неверен. Пожалуйста, попробуйте снова.');
                 showStartOptions(); // Возвращаем к начальным опциям
@@ -257,6 +255,7 @@ bot.on('message', (msg) => {
         showStartOptions();
     } else if (msg.text === 'Отмена') {
         // Сброс всех переменных и возврат на начальный экран
+        showStartOptions(); // Показать начальные опции
         chatId = null;
         mediaFolder = './media'; // Сброс к папке по умолчанию
         sendingMedia = false; // Сброс флага отправки
@@ -265,6 +264,7 @@ bot.on('message', (msg) => {
         endTime = null; // Сброс времени окончания
         intervalId = null; // Сброс ID интервала
         interval = 10000; // Сброс интервала к значению по умолчанию
-        showStartOptions(); // Показать начальные опции
+
+        
     }
 });
