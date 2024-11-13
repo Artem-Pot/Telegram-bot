@@ -151,7 +151,7 @@ function showIntervalOptions() {
         parse_mode: 'HTML'
     };
 
-    bot.sendMessage(chatId, `<b>Выберите интервал отправки медиафайлов 🕐:</b>`, options);
+    bot.sendMessage(chatId, `<b>Выберите интервал отправки медиафайлов:</b>`, options);
 }
 
 // Функция для отображения опций времени
@@ -159,7 +159,7 @@ function showTimeOptions() {
     const options = {
         reply_markup: {
             keyboard: [
-                ['8:00', '9:00', '10:00', '11:00', '12:00', 'СВОЁ ВРЕМЯ'],
+                ['8:00', '9:00', '10:00', '11:00', '12:00'],
                 ['Отмена 🔄']
             ],
             resize_keyboard: true,
@@ -169,7 +169,7 @@ function showTimeOptions() {
         parse_mode: 'HTML'
     };
 
-    bot.sendMessage(chatId, `<b>Теперь выберите время начала 🕐:</b>`, options);
+    bot.sendMessage(chatId, `<b>Теперь выберите время начала:</b>`, options);
 }
 
 // Функция для отображения опций окончания времени
@@ -177,7 +177,7 @@ function showEndTimeOptions() {
     const options = {
         reply_markup: {
             keyboard: [
-                ['19:00', '20:00', '21:00', '22:00', 'СВОЁ ВРЕМЯ'],
+                ['19:00', '20:00', '21:00', '22:00'],
                 ['Отмена 🔄']
             ],
             resize_keyboard: true,
@@ -186,7 +186,7 @@ function showEndTimeOptions() {
         parse_mode: 'HTML'
     };
 
-    bot.sendMessage(chatId, `<b>Теперь выберите время окончания 🕐:</b> `, options);
+    bot.sendMessage(chatId, `<b>Теперь выберите время окончания:</b> `, options);
 }
 
 // Функция для отображения подпапок в папке media
@@ -228,10 +228,10 @@ bot.on('message', (msg) => {
         showIntervalOptions(); // Переходим к выбору интервала
     } else if (['5 секунд', '10 секунд', '15 секунд', '20 секунд'].includes(msg.text)) {
         interval = parseInt(msg.text) * 1000; // Устанавливаем интервал в миллисекундах
-        bot.sendMessage(chatId, `<b>Интервал установлен на ${msg.text}. Выберите время начала🕐:</b> `, {
+        bot.sendMessage(chatId, `<b>Интервал установлен на ${msg.text}. Выберите время начала:</b> `, {
             reply_markup: {
                 keyboard: [
-                    ['8:00', '9:00', '10:00', '11:00', '12:00', 'СВОЁ ВРЕМЯ'],
+                    ['8:00', '9:00', '10:00', '11:00', '12:00'],
                     ['Отмена 🔄']
                 ],
                 resize_keyboard: true,
@@ -247,21 +247,6 @@ bot.on('message', (msg) => {
         startTime = new Date();
         startTime.setHours(hours, minutes, 0); // Устанавливаем время начала
         showEndTimeOptions(); // Показать опции для выбора времени окончания
-    } else if (msg.text === 'СВОЁ ВРЕМЯ') {
-        bot.sendMessage(chatId, `<b>Введите своё время (чч:мм):</b>`, {parse_mode: 'HTML'});
-        bot.once('message', (timeMsg) => {
-            const timeParts = timeMsg.text.split(':');
-            if (timeParts.length === 2) {
-                const hours = parseInt(timeParts[0]);
-                const minutes = parseInt(timeParts[1]);
-                startTime = new Date();
-                startTime.setHours(hours, minutes, 0); // Устанавливаем время начала
-                
-                showEndTimeOptions(); // Показать опции для выбора времени окончания
-            } else {
-                bot.sendMessage(chatId, `<b>Неверный формат времени. Пожалуйста, введите в формате чч:мм.</b>`, {parse_mode: 'HTML'});
-            }
-        });
     } else if (['19:00', '20:00', '21:00', '22:00'].includes(msg.text)) {
         const timeParts = msg.text.split(':');
         const hours = parseInt(timeParts[0]);
