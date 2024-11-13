@@ -154,30 +154,14 @@ function showIntervalOptions() {
     bot.sendMessage(chatId, `<b>Выберите интервал отправки медиафайлов:</b>`, options);
 }
 
-// Функция для отображения опций времени
-function showTimeOptions() {
-    const options = {
-        reply_markup: {
-            keyboard: [
-                ['8:00', '9:00', '10:00', '11:00', '12:00'],
-                ['Отмена 🔄']
-            ],
-            resize_keyboard: true,
-            one_time_keyboard: true
-        }
-        ,
-        parse_mode: 'HTML'
-    };
-
-    bot.sendMessage(chatId, `<b>Теперь выберите время начала:</b>`, options);
-}
-
 // Функция для отображения опций окончания времени
 function showEndTimeOptions() {
     const options = {
         reply_markup: {
             keyboard: [
-                ['19:00', '20:00', '21:00', '22:00'],
+                ['7:00', '8:00', '9:00', '10:00', '11:00', '12:00'],
+                ['13:00', '14:00', '15:00', '16:00', '17:00', '18:00'],
+                ['19:00', '20:00', '21:00', '22:00', '23:00', '23:59'],
                 ['Отмена 🔄']
             ],
             resize_keyboard: true,
@@ -231,7 +215,9 @@ bot.on('message', (msg) => {
         bot.sendMessage(chatId, `<b>Интервал установлен на ${msg.text}. Выберите время начала:</b> `, {
             reply_markup: {
                 keyboard: [
-                    ['8:00', '9:00', '10:00', '11:00', '12:00'],
+                    ['7:00', '8:00', '9:00', '10:00', '11:00', '12:00'],
+                    ['13:00', '14:00', '15:00', '16:00', '17:00', '18:00'],
+                    ['19:00', '20:00', '21:00', '22:00', '23:00', '23:59'],
                     ['Отмена 🔄']
                 ],
                 resize_keyboard: true,
@@ -240,30 +226,49 @@ bot.on('message', (msg) => {
             parse_mode: 'HTML'
         });
 
-    } else if (['8:00', '9:00', '10:00', '11:00', '12:00'].includes(msg.text)) {
-        const timeParts = msg.text.split(':');
-        const hours = parseInt(timeParts[0]);
-        const minutes = parseInt(timeParts[1]);
-        startTime = new Date();
-        startTime.setHours(hours, minutes, 0); // Устанавливаем время начала
-        showEndTimeOptions(); // Показать опции для выбора времени окончания
-    } else if (['19:00', '20:00', '21:00', '22:00'].includes(msg.text)) {
-        const timeParts = msg.text.split(':');
-        const hours = parseInt(timeParts[0]);
-        const minutes = parseInt(timeParts[1]);
-        endTime = new Date();
-        endTime.setHours(hours, minutes, 0); // Устанавливаем время окончания
-
-        bot.sendMessage(chatId, `<b>Готово! Нажмите "Запустить отправку медиафайлов", чтобы начать.</b>`, {
-            reply_markup: {
-                keyboard: [
-                    ['Запустить отправку медиафайлов ▶️', 'Отмена 🔄']
-                ],
-                resize_keyboard: true,
-                one_time_keyboard: true
-            },
-            parse_mode: 'HTML'
-        });
+    } else if (['7:00', '8:00', '9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00', '23:59'].includes(msg.text)) {
+        if (!startTime) {
+            // Выбор времени начала
+            const timeParts = msg.text.split(':');
+            const hours = parseInt(timeParts[0]);
+            const minutes = parseInt(timeParts[1]);
+            startTime = new Date();
+            startTime.setHours(hours, minutes, 0); // Устанавливаем время начала
+            bot.sendMessage(chatId, `<b>Время начала установлено на ${msg.text}. Теперь выберите время окончания:</b>`, {
+                reply_markup: {
+                    keyboard: [
+                        ['7:00', '8:00', '9:00', '10:00', '11:00', '12:00'],
+                        ['13:00', '14:00', '15:00', '16:00', '17:00', '18:00'],
+                        ['19:00', '20:00', '21:00', '22:00', '23:00', '23:59'],
+                        ['Отмена 🔄']
+                    ],
+                    resize_keyboard: true,
+                    one_time_keyboard: true
+                },
+                parse_mode: 'HTML'
+            });
+        } else {
+            // Выбор времени окончания
+            const timeParts = msg.text.split(':');
+            const hours = parseInt(timeParts[0]);
+            const minutes = parseInt(timeParts[1]);
+            endTime = new Date();
+            endTime.setHours(hours, minutes, 0); // Устанавливаем время окончания
+    
+            // Проверка, что время окончания больше времени начала
+            if (endTime <= startTime) {
+                bot.sendMessage(chatId, `<b>Время окончания должно быть позже времени начала.</b>`, { parse_mode: 'HTML' });
+            } else {
+                bot.sendMessage(chatId, `<b>Готово! Нажмите "Запустить отправку медиафайлов", чтобы начать.</b>`, {
+                    reply_markup: {
+                        keyboard: [['Запустить отправку медиафайлов ▶️', 'Отмена 🔄']],
+                        resize_keyboard: true,
+                        one_time_keyboard: true
+                    },
+                    parse_mode: 'HTML'
+                });
+            }
+        }
     } else if (msg.text === 'Запустить отправку медиафайлов ▶️') {
         startSendingMedia();
     } else if (msg.text === 'Остановить отправку медиафайлов ⏹️') {
