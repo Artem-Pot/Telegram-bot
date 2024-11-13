@@ -18,6 +18,7 @@ let startTime; // Время начала отправки
 let endTime; // Время окончания отправки
 let mediaFiles; // Массив медиафайлов
 
+
 // Функция для получения списка медиафайлов из папки
 function getMediaFiles() {
     return fs.readdirSync(mediaFolder).filter(file => {
@@ -35,16 +36,16 @@ function getSubfolders(directory) {
 // Функция для отправки медиафайла
 function sendMediaFile(mediaFile) {
     const mediaPath = path.join(mediaFolder, mediaFile);
-    console.log(`Attempting to send media file: ${mediaPath}`); // Отладочная информация
+    console.log(`Попытка отправить медиафайл: ${mediaPath}`); // Отладочная информация
 
     const isVideo = /\.(mp4|mov|avi)$/.test(mediaFile);
     if (isVideo) {
         bot.sendVideo(channelId, mediaPath)
             .then(() => {
-                console.log(`Sent video: ${mediaFile}`);
+                console.log(`Отправлено видео: ${mediaFile}`);
             })
             .catch(error => {
-                console.error(`Error sending video: ${error}`);
+                console.error(`Ошибка отправки видео: ${error}`);
             });
     } else {
         bot.sendPhoto(channelId, mediaPath)
@@ -52,7 +53,7 @@ function sendMediaFile(mediaFile) {
                 console.log(`Sent image: ${mediaFile}`);
             })
             .catch(error => {
-                console.error(`Error sending image: ${error}`);
+                console.error(`Ошибка отправки изображения: ${error}`);
             });
     }
 }
@@ -64,7 +65,7 @@ function startSendingMedia() {
     sendingMedia = true;
     mediaFiles = getMediaFiles(); // Получаем список медиафайлов
     if (mediaFiles.length === 0) {
-        bot.sendMessage(chatId, 'Нет медиафайлов в указанной папке.');
+        bot.sendMessage(chatId, `<b>Нет медиафайлов в указанной папке.</b>`, {parse_mode: 'HTML'});
         sendingMedia = false; // Сбрасываем флаг
         return; // Если нет медиафайлов, выходим из функции
     }
@@ -86,12 +87,12 @@ function startSendingMedia() {
                 index++; // Увеличиваем индекс на 1
             } else {
                 stopSendingMedia();
-                bot.sendMessage(chatId, 'Все медиафайлы были успешно отправлены.');
+                bot.sendMessage(chatId, `<b>Все медиафайлы были успешно отправлены.</b>`, {parse_mode: 'HTML'});
                 showStartOptions();
             }
         } else if (currentTotalMinutes >= endTotalMinutes) {
             stopSendingMedia();
-            bot.sendMessage(chatId, 'Время отправки медиафайлов истекло.');
+            bot.sendMessage(chatId, `<b>Время отправки медиафайлов истекло.</b>`, {parse_mode: 'HTML'});
             showStartOptions();
         }
     }, interval);
@@ -99,14 +100,15 @@ function startSendingMedia() {
     const options = {
         reply_markup: {
             keyboard: [
-                ['Остановить отправку медиафайлов']
+                ['Остановить отправку медиафайлов ⏹️']
             ],
             resize_keyboard: true,
             one_time_keyboard: true
-        }
+        },
+        parse_mode: 'HTML'
     };
 
-    bot.sendMessage(chatId, 'Отправка медиафайлов запущена!', options);
+    bot.sendMessage(chatId, `<b>Отправка медиафайлов запущена!</b>`, options);
 }
 
 // Функция для остановки отправки медиафайлов
@@ -115,7 +117,7 @@ function stopSendingMedia() {
 
     clearInterval(intervalId); // Останавливаем интервал
     sendingMedia = false; // Сбрасываем флаг
-    console.log('Stopped sending media files.');
+    console.log('Прекращена отправка медиафайлов.');
 }
 
 // Функция для отображения начальных опций
@@ -123,14 +125,15 @@ function showStartOptions() {
     const options = {
         reply_markup: {
             keyboard: [
-                ['Выбрать папку с медиафайлами']
+                ['Выбрать папку с медиафайлами 📂']
             ],
             resize_keyboard: true,
             one_time_keyboard: true
-        }
+        },
+        parse_mode: 'HTML'
     };
 
-    bot.sendMessage(chatId, 'Добро пожаловать! Нажмите "Выбрать папку с медиафайлами", чтобы продолжить:', options);
+    bot.sendMessage(chatId, `<b>Добро пожаловать! Нажмите "Выбрать папку с медиафайлами", чтобы продолжить:</b>`, options);
 }
 
 // Функция для отображения опций интервала
@@ -140,14 +143,15 @@ function showIntervalOptions() {
             keyboard: [
                 ['5 секунд', '10 секунд'],
                 ['15 секунд', '20 секунд'],
-                ['Отмена']
+                ['Отмена 🔄']
             ],
             resize_keyboard: true,
             one_time_keyboard: true
-        }
+        },
+        parse_mode: 'HTML'
     };
 
-    bot.sendMessage(chatId, 'Выберите интервал отправки медиафайлов:', options);
+    bot.sendMessage(chatId, `<b>Выберите интервал отправки медиафайлов 🕐:</b>`, options);
 }
 
 // Функция для отображения опций времени
@@ -156,14 +160,16 @@ function showTimeOptions() {
         reply_markup: {
             keyboard: [
                 ['8:00', '9:00', '10:00', '11:00', '12:00', 'СВОЁ ВРЕМЯ'],
-                ['Отмена']
+                ['Отмена 🔄']
             ],
             resize_keyboard: true,
             one_time_keyboard: true
         }
+        ,
+        parse_mode: 'HTML'
     };
 
-    bot.sendMessage(chatId, 'Теперь выберите время начала:', options);
+    bot.sendMessage(chatId, `<b>Теперь выберите время начала 🕐:</b>`, options);
 }
 
 // Функция для отображения опций окончания времени
@@ -172,21 +178,22 @@ function showEndTimeOptions() {
         reply_markup: {
             keyboard: [
                 ['19:00', '20:00', '21:00', '22:00', 'СВОЁ ВРЕМЯ'],
-                ['Отмена']
+                ['Отмена 🔄']
             ],
             resize_keyboard: true,
             one_time_keyboard: true
-        }
+        },
+        parse_mode: 'HTML'
     };
 
-    bot.sendMessage(chatId, 'Теперь выберите время окончания:', options);
+    bot.sendMessage(chatId, `<b>Теперь выберите время окончания 🕐:</b> `, options);
 }
 
 // Функция для отображения подпапок в папке media
 function showSubfolders() {
     const subfolders = getSubfolders(mediaFolder);
     if (subfolders.length === 0) {
-        bot.sendMessage(chatId, 'В указанной папке нет вложенных папок.');
+        bot.sendMessage(chatId, `<b>В указанной папке нет вложенных папок.</b>`, {parse_mode: 'HTML'});
         showStartOptions(); // Возвращаем к начальным опциям
         return;
     }
@@ -196,10 +203,11 @@ function showSubfolders() {
             keyboard: subfolders.map(folder => [folder]), // Создаем кнопки для каждого подкаталога
             resize_keyboard: true,
             one_time_keyboard: true
-        }
+        },
+        parse_mode: 'HTML'
     };
 
-    bot.sendMessage(chatId, 'Выберите папку с медиафайлами:', options);
+    bot.sendMessage(chatId, `<b>Выберите папку с медиафайлами:</b>`, options);
 }
 
 // Обработка текстовых сообщений
@@ -212,24 +220,26 @@ bot.onText(/\/start/, (msg) => {
 bot.on('message', (msg) => {
     chatId = msg.chat.id; // Обновляем идентификатор чата
 
-    if (msg.text === 'Выбрать папку с медиафайлами') {
+    if (msg.text === 'Выбрать папку с медиафайлами 📂') {
         showSubfolders(); // Вызываем функцию для отображения подпапок
     } else if (getSubfolders(mediaFolder).includes(msg.text)) {
         mediaFolder = path.join(mediaFolder, msg.text); // Обновляем путь к выбранной папке
-        bot.sendMessage(chatId, `Папка с медиафайлами установлена: ${mediaFolder}`);
+        bot.sendMessage(chatId, `<b>Папка с медиафайлами установлена:  <u>${mediaFolder}</u></b>`, {parse_mode: "HTML"});
         showIntervalOptions(); // Переходим к выбору интервала
     } else if (['5 секунд', '10 секунд', '15 секунд', '20 секунд'].includes(msg.text)) {
         interval = parseInt(msg.text) * 1000; // Устанавливаем интервал в миллисекундах
-        bot.sendMessage(chatId, `Интервал установлен на ${msg.text}.`, {
+        bot.sendMessage(chatId, `<b>Интервал установлен на ${msg.text}. Выберите время начала🕐:</b> `, {
             reply_markup: {
                 keyboard: [
                     ['8:00', '9:00', '10:00', '11:00', '12:00', 'СВОЁ ВРЕМЯ'],
-                    ['Отмена']
+                    ['Отмена 🔄']
                 ],
                 resize_keyboard: true,
                 one_time_keyboard: true
-            }
+            },
+            parse_mode: 'HTML'
         });
+
     } else if (['8:00', '9:00', '10:00', '11:00', '12:00'].includes(msg.text)) {
         const timeParts = msg.text.split(':');
         const hours = parseInt(timeParts[0]);
@@ -238,7 +248,7 @@ bot.on('message', (msg) => {
         startTime.setHours(hours, minutes, 0); // Устанавливаем время начала
         showEndTimeOptions(); // Показать опции для выбора времени окончания
     } else if (msg.text === 'СВОЁ ВРЕМЯ') {
-        bot.sendMessage(chatId, 'Введите своё время (чч:мм):');
+        bot.sendMessage(chatId, `<b>Введите своё время (чч:мм):</b>`, {parse_mode: 'HTML'});
         bot.once('message', (timeMsg) => {
             const timeParts = timeMsg.text.split(':');
             if (timeParts.length === 2) {
@@ -249,7 +259,7 @@ bot.on('message', (msg) => {
                 
                 showEndTimeOptions(); // Показать опции для выбора времени окончания
             } else {
-                bot.sendMessage(chatId, 'Неверный формат времени. Пожалуйста, введите в формате чч:мм.');
+                bot.sendMessage(chatId, `<b>Неверный формат времени. Пожалуйста, введите в формате чч:мм.</b>`, {parse_mode: 'HTML'});
             }
         });
     } else if (['19:00', '20:00', '21:00', '22:00'].includes(msg.text)) {
@@ -259,18 +269,19 @@ bot.on('message', (msg) => {
         endTime = new Date();
         endTime.setHours(hours, minutes, 0); // Устанавливаем время окончания
 
-        bot.sendMessage(chatId, 'Готово! Нажмите "Запустить отправку медиафайлов", чтобы начать.', {
+        bot.sendMessage(chatId, `<b>Готово! Нажмите "Запустить отправку медиафайлов", чтобы начать.</b>`, {
             reply_markup: {
                 keyboard: [
-                    ['Запустить отправку медиафайлов', 'Отмена']
+                    ['Запустить отправку медиафайлов ▶️', 'Отмена 🔄']
                 ],
                 resize_keyboard: true,
                 one_time_keyboard: true
-            }
+            },
+            parse_mode: 'HTML'
         });
-    } else if (msg.text === 'Запустить отправку медиафайлов') {
+    } else if (msg.text === 'Запустить отправку медиафайлов ▶️') {
         startSendingMedia();
-    } else if (msg.text === 'Остановить отправку медиафайлов') {
+    } else if (msg.text === 'Остановить отправку медиафайлов ⏹️') {
         stopSendingMedia();
         showStartOptions();
        
@@ -283,7 +294,7 @@ bot.on('message', (msg) => {
         interval = 10000; // Сброс интервала к значению по умолчанию
         // showSubfolders();
 
-    } else if (msg.text === 'Отмена') {
+    } else if (msg.text === 'Отмена 🔄') {
         // Сброс всех переменных и возврат на начальный экран
         showStartOptions(); // Показать начальные опции
         chatId = null;
