@@ -4,17 +4,23 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "start": "node parser.js",
+    "start2": "node index.js",
+    "start3": "node parserSite.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@michpl/telegram-calendar": "^1.1.0",
+    "axios": "^1.7.7",
+    "cheerio": "^1.0.0",
     "cjs": "^0.0.11",
+    "node-fetch": "^3.3.2",
     "node-telegram-bot-api": "0.66.0",
+    "rss-parser": "^3.13.0",
+    "tdl": "^8.0.1",
     "telegraf": "^4.16.3"
   },
-  "devDependencies": {},
   "description": ""
 }
