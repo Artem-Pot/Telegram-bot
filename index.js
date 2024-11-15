@@ -22,7 +22,7 @@ let mediaFiles; // Массив медиафайлов
 // Функция для получения списка медиафайлов из папки
 function getMediaFiles() {
     return fs.readdirSync(mediaFolder).filter(file => {
-        return /\.(jpg|jpeg|png|gif|mp4|mov|avi)$/.test(file); // Поддерживаемые форматы изображений и видео
+        return /\.(jpg|jpeg|png|gif|raw|tiff|bmp|psd|svg|webp|mp4|mov|avi|mpeg|m4v)$/.test(file); // Поддерживаемые форматы изображений и видео
     });
 }
 
@@ -38,7 +38,9 @@ function sendMediaFile(mediaFile) {
     const mediaPath = path.join(mediaFolder, mediaFile);
     console.log(`Попытка отправить медиафайл: ${mediaPath}`); // Отладочная информация
 
-    const isVideo = /\.(mp4|mov|avi)$/.test(mediaFile);
+    const isVideo = /\.(mp4|mov|avi|mpeg|m4v)$/i.test(mediaFile); // Добавлены новые видеоформаты
+    const isImage = /\.(jpg|jpeg|png|gif|raw|tiff|bmp|psd|svg|webp)$/i.test(mediaFile); // Добавлены новые форматы изображений
+
     if (isVideo) {
         bot.sendVideo(channelId, mediaPath)
             .then(() => {
@@ -47,14 +49,16 @@ function sendMediaFile(mediaFile) {
             .catch(error => {
                 console.error(`Ошибка отправки видео: ${error}`);
             });
-    } else {
+    } else if (isImage) {
         bot.sendPhoto(channelId, mediaPath)
             .then(() => {
-                console.log(`Sent image: ${mediaFile}`);
+                console.log(`Отправлено изображение: ${mediaFile}`);
             })
             .catch(error => {
                 console.error(`Ошибка отправки изображения: ${error}`);
             });
+    } else {
+        console.error(`Файл ${mediaFile} не поддерживается для отправки.`);
     }
 }
 

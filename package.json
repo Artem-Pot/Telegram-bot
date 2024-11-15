@@ -16,11 +16,16 @@
     "axios": "^1.7.7",
     "cheerio": "^1.0.0",
     "cjs": "^0.0.11",
+    "fs": "^0.0.1-security",
+    "grammy": "^1.31.3",
     "node-fetch": "^3.3.2",
-    "node-telegram-bot-api": "0.66.0",
+    "node-telegram-bot-api": "^0.66.0",
+    "puppeteer": "^23.8.0",
     "rss-parser": "^3.13.0",
     "tdl": "^8.0.1",
-    "telegraf": "^4.16.3"
+    "telegraf": "^4.16.3",
+    "telegram": "^2.26.6"
   },
+  "devDependencies": {},
   "description": ""
 }
