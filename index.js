@@ -1,6 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
 const path = require('path');
+const sharp = require('sharp');
 
 // Ваш токен и chatId канала (например, @my_channel)
 const token = '7217323400:AAG-59l0iLJ01a-rVGbS8qplGLgT1EyAa2U';
@@ -18,12 +19,26 @@ let startTime; // Время начала отправки
 let endTime; // Время окончания отправки
 let mediaFiles; // Массив медиафайлов
 
-
 // Функция для получения списка медиафайлов из папки
 function getMediaFiles() {
     return fs.readdirSync(mediaFolder).filter(file => {
         return /\.(jpg|jpeg|png|gif|raw|tiff|bmp|psd|svg|webp|mp4|mov|avi|mpeg|m4v)$/.test(file); // Поддерживаемые форматы изображений и видео
     });
+}
+
+// Функция для конвертации TIFF и SVG в PNG
+async function convertToPNG(filePath) {
+    const outputFilePath = filePath.replace(/\.(tiff|svg)$/i, '.png');
+
+    try {
+        await sharp(filePath)
+            .toFile(outputFilePath);
+        console.log(`Конвертирован ${filePath} в ${outputFilePath}`);
+        return outputFilePath; // Возвращаем путь к конвертированному файлу
+    } catch (error) {
+        console.error(`Ошибка конвертации ${filePath}: ${error.message}`);
+        return null; // Возвращаем null в случае ошибки
+    }
 }
 
 // Функция для получения списка вложенных папок
@@ -34,12 +49,25 @@ function getSubfolders(directory) {
 }
 
 // Функция для отправки медиафайла
-function sendMediaFile(mediaFile) {
+async function sendMediaFile(mediaFile) {
     const mediaPath = path.join(mediaFolder, mediaFile);
     console.log(`Попытка отправить медиафайл: ${mediaPath}`); // Отладочная информация
 
-    const isVideo = /\.(mp4|mov|avi|mpeg|m4v)$/i.test(mediaFile); // Добавлены новые видеоформаты
-    const isImage = /\.(jpg|jpeg|png|gif|raw|tiff|bmp|psd|svg|webp)$/i.test(mediaFile); // Добавлены новые форматы изображений
+    const isVideo = /\.(mp4|mov|avi|mpeg|m4v)$/i.test(mediaFile);
+    const isImage = /\.(jpg|jpeg|png|gif|raw|tiff|bmp|psd|svg|webp)$/i.test(mediaFile);
+
+    if (isImage && /\.(tiff|svg)$/i.test(mediaFile)) {
+        const convertedFile = await convertToPNG(mediaPath);
+        if (convertedFile) {
+            // Если конвертация успешна, отправляем конвертированный файл
+            await bot.sendPhoto(channelId, convertedFile);
+            console.log(`Отправлено изображение: ${convertedFile}`);
+            return; // Завершаем выполнение функции
+        } else {
+            console.error(`Не удалось конвертировать файл: ${mediaFile}`);
+            return; // Завершаем выполнение функции, если конвертация не удалась
+        }
+    }
 
     if (isVideo) {
         bot.sendVideo(channelId, mediaPath)
