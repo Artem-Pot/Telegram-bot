@@ -120,7 +120,17 @@ function startSendingMedia() {
             } else {
                 stopSendingMedia();
                 bot.sendMessage(chatId, `<b>Все медиафайлы были успешно отправлены.</b>`, {parse_mode: 'HTML'});
-                showStartOptions();
+
+                showStartOptions(); // Показать начальные опции
+                chatId = null;
+                mediaFolder = './media'; // Сброс к папке по умолчанию
+                sendingMedia = false; // Сброс флага отправки
+                clearInterval(intervalId); // Остановка интервала, если он запущен
+                startTime = null; // Сброс времени начала
+                endTime = null; // Сброс времени окончания
+                intervalId = null; // Сброс ID интервала
+                interval = 10000; // Сброс интервала к значению по умолчанию
+
             }
         } else if (currentTotalMinutes >= endTotalMinutes) {
             stopSendingMedia();
@@ -328,10 +338,5 @@ bot.on('message', (msg) => {
         intervalId = null; // Сброс ID интервала
         interval = 10000; // Сброс интервала к значению по умолчанию
 
-    }
+    } 
 });
-
-
-
-//Кстати, в этот же объект, помимо parse_mode и disable_web_page_preview, мы можем передать 
-//параметр disable_notification - это позволит отправить сообщение пользователю без уведомления:
