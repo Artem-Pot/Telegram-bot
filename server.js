@@ -2,6 +2,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
+const moment = require('moment-timezone'); // Импортируем moment-timezone
 
 // Ваш токен и chatId канала (например, @my_channel)
 const token = '7217323400:AAG-59l0iLJ01a-rVGbS8qplGLgT1EyAa2U';
@@ -105,13 +106,11 @@ function startSendingMedia() {
     let index = 0;
 
     intervalId = setInterval(() => {
-        const currentTime = new Date();
-        const currentHours = currentTime.getHours();
-        const currentMinutes = currentTime.getMinutes();
-        const currentTotalMinutes = currentHours * 60 + currentMinutes;
+        const currentTime = moment.tz("Europe/Samara"); // Получаем текущее время в Europe/Samara
+        const currentTotalMinutes = currentTime.hours() * 60 + currentTime.minutes();
 
-        const startTotalMinutes = startTime.getHours() * 60 + startTime.getMinutes();
-        const endTotalMinutes = endTime.getHours() * 60 + endTime.getMinutes();
+        const startTotalMinutes = startTime.hours() * 60 + startTime.minutes();
+        const endTotalMinutes = endTime.hours() * 60 + endTime.minutes();
 
         if (currentTotalMinutes >= startTotalMinutes && currentTotalMinutes < endTotalMinutes) {
             if (index < mediaFiles.length) {
@@ -177,6 +176,9 @@ function showStartOptions() {
 
     bot.sendMessage(chatId, `<b>Добро пожаловать! Нажмите "Выбрать папку с медиафайлами", чтобы продолжить:</b>`, options);
 }
+
+
+
 
 // Функция для отображения опций интервала
 function showIntervalOptions() {
@@ -274,8 +276,7 @@ bot.on('message', (msg) => {
             const timeParts = msg.text.split(':');
             const hours = parseInt(timeParts[0]);
             const minutes = parseInt(timeParts[1]);
-            startTime = new Date();
-            startTime.setHours(hours, minutes, 0); // Устанавливаем время начала
+            startTime = moment.tz(`2023-01-01 ${msg.text}`, "Europe/Samara"); // Устанавливаем время начала с учетом временной зоны
             bot.sendMessage(chatId, `<b>Время начала установлено на ${msg.text}. Теперь выберите время окончания:</b>`, {
                 reply_markup: {
                     keyboard: [
@@ -294,11 +295,10 @@ bot.on('message', (msg) => {
             const timeParts = msg.text.split(':');
             const hours = parseInt(timeParts[0]);
             const minutes = parseInt(timeParts[1]);
-            endTime = new Date();
-            endTime.setHours(hours, minutes, 0); // Устанавливаем время окончания
-    
+            endTime = moment.tz(`2023-01-01 ${msg.text}`, "Europe/Samara"); // Устанавливаем время окончания с учетом временной зоны
+
             // Проверка, что время окончания больше времени начала
-            if (endTime <= startTime) {
+            if (endTime.isSameOrBefore(startTime)) {
                 bot.sendMessage(chatId, `<b>Время окончания должно быть позже времени начала.</b>`, { parse_mode: 'HTML' });
             } else {
                 bot.sendMessage(chatId, `<b>Готово! Нажмите "Запустить отправку медиафайлов", чтобы начать.</b>`, {
@@ -340,3 +340,6 @@ bot.on('message', (msg) => {
 
     } 
 });
+
+// Запуск бота
+console.log('Бот запущен и готов к работе...');
