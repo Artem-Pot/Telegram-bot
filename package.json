@@ -14,6 +14,7 @@
   "dependencies": {
     "@michpl/telegram-calendar": "^1.1.0",
     "axios": "^1.7.7",
+    "chalk": "^4.1.2",
     "cheerio": "^1.0.0",
     "cjs": "^0.0.11",
     "fluent-ffmpeg": "^2.1.3",

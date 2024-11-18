@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
 const moment = require('moment-timezone'); // Импортируем moment-timezone
+const chalk = require('chalk');
 
 // Ваш токен и chatId канала (например, @my_channel)
 const token = '7217323400:AAG-59l0iLJ01a-rVGbS8qplGLgT1EyAa2U';
@@ -35,10 +36,10 @@ async function convertToPNG(filePath) {
     try {
         await sharp(filePath)
             .toFile(outputFilePath);
-        console.log(`[${now}] Конвертирован ${filePath} в ${outputFilePath}`);
+        console.log(chalk.yellow(`[${now}] Конвертирован ${filePath} в ${outputFilePath}`));
         return outputFilePath; // Возвращаем путь к конвертированному файлу
     } catch (error) {
-        console.error(`[${now}] Ошибка конвертации ${filePath}: ${error.message}`);
+        console.error(chalk.white.bgRed(`[${now}] Ошибка конвертации ${filePath}: ${error.message}`));
         return null; // Возвращаем null в случае ошибки
     }
 }
@@ -67,7 +68,7 @@ async function sendMediaFile(mediaFile) {
             console.log(`[${now}] Отправлено изображение: ${convertedFile}`);
             return; // Завершаем выполнение функции
         } else {
-            console.error(`[${now}] Не удалось конвертировать файл: ${mediaFile}`);
+            console.error(chalk.white.bgRed(`[${now}] Не удалось конвертировать файл: ${mediaFile}`));
             return; // Завершаем выполнение функции, если конвертация не удалась
         }
     }
@@ -79,7 +80,7 @@ async function sendMediaFile(mediaFile) {
                 console.log(`[${now}] Отправлено видео: ${mediaFile}`);
             })
             .catch(error => {
-                console.error(`[${now}] Ошибка отправки видео: ${error}`);
+                console.error(chalk.white.bgRed(`[${now}] Ошибка отправки видео: ${error}`));
             });
     } else if (isImage) {
         bot.sendPhoto(channelId, mediaPath) // Используем mediaPath вместо convertedFile
@@ -88,10 +89,10 @@ async function sendMediaFile(mediaFile) {
                 console.log(`[${now}] Отправлено изображение: ${mediaPath}`); // Используем mediaPath
             })
             .catch(error => {
-                console.error(`[${now}] Ошибка отправки изображения: ${error}`);
+                console.error(chalk.white.bgRed(`[${now}] Ошибка отправки изображения: ${error}`));
             });
     } else {
-        console.error(`[${now}] Файл ${mediaFile} не поддерживается для отправки.`);
+        console.error(chalk.white.bgRed(`[${now}] Файл ${mediaFile} не поддерживается для отправки.`));
     }
 }
 
@@ -102,8 +103,9 @@ function startSendingMedia() {
     sendingMedia = true;
     mediaFiles = getMediaFiles(); // Получаем список медиафайлов
     if (mediaFiles.length === 0) {
-        bot.sendMessage(chatId, `<b>Нет медиафайлов в указанной папке.</b>`, {parse_mode: 'HTML'});
+        bot.sendMessage(chatId, `<b>Нет медиафайлов в указанной папке. Пожалуйста, выберите другую папку.</b>`, {parse_mode: 'HTML'});
         sendingMedia = false; // Сбрасываем флаг
+        showSubfolders(); // Предлагаем выбрать другую папку
         return; // Если нет медиафайлов, выходим из функции
     }
 
@@ -162,7 +164,7 @@ function stopSendingMedia() {
 
     clearInterval(intervalId); // Останавливаем интервал
     sendingMedia = false; // Сбрасываем флаг
-    console.log(`[${now}] Прекращена отправка медиафайлов.`);
+    console.log(chalk.green(`[${now}] Прекращена отправка медиафайлов.`));
 }
 
 // Функция для отображения начальных опций
@@ -180,9 +182,6 @@ function showStartOptions() {
 
     bot.sendMessage(chatId, `<b>Добро пожаловать! Нажмите "Выбрать папку с медиафайлами", чтобы продолжить:</b>`, options);
 }
-
-
-
 
 // Функция для отображения опций интервала
 function showIntervalOptions() {
@@ -226,7 +225,15 @@ function showSubfolders() {
     const subfolders = getSubfolders(mediaFolder);
     if (subfolders.length === 0) {
         bot.sendMessage(chatId, `<b>В указанной папке нет вложенных папок.</b>`, {parse_mode: 'HTML'});
-        showStartOptions(); // Возвращаем к начальным опциям
+        showStartOptions(); // Показать начальные опции
+        chatId = null;
+        mediaFolder = './media'; // Сброс к папке по умолчанию
+        sendingMedia = false; // Сброс флага отправки
+        clearInterval(intervalId); // Остановка интервала, если он запущен
+        startTime = null; // Сброс времени начала
+        endTime = null; // Сброс времени окончания
+        intervalId = null; // Сброс ID интервала
+        interval = 10000; // Сброс интервала к значению по умолчанию
         return;
     }
 
@@ -249,6 +256,7 @@ bot.onText(/\/start/, (msg) => {
 });
 
 // Обработка выбора папки с медиафайлами
+// Обработка выбора папки с медиафайлами
 bot.on('message', (msg) => {
     chatId = msg.chat.id; // Обновляем идентификатор чата
 
@@ -257,6 +265,12 @@ bot.on('message', (msg) => {
     } else if (getSubfolders(mediaFolder).includes(msg.text)) {
         mediaFolder = path.join(mediaFolder, msg.text); // Обновляем путь к выбранной папке
         bot.sendMessage(chatId, `<b>Папка с медиафайлами установлена:  <u>${mediaFolder}</u></b>`, {parse_mode: "HTML"});
+        mediaFiles = getMediaFiles(); // Получаем список медиафайлов
+        if (mediaFiles.length === 0) {
+            bot.sendMessage(chatId, `<b>Нет медиафайлов в указанной папке. Пожалуйста, выберите другую папку.</b>`, {parse_mode: 'HTML'});
+            showSubfolders(); // Предлагаем выбрать другую папку
+            return; // Если нет медиафайлов, выходим из функции
+        }
         showIntervalOptions(); // Переходим к выбору интервала
     } else if (['5 секунд', '10 секунд', '15 секунд', '20 секунд'].includes(msg.text)) {
         interval = parseInt(msg.text) * 1000; // Устанавливаем интервал в миллисекундах
@@ -348,4 +362,4 @@ bot.on('message', (msg) => {
 
 // Запуск бота
 
-console.log(`[${now}] Бот запущен и готов к работе...`);
+console.log(chalk.green(`[${now}] Бот запущен и готов к работе...`));
