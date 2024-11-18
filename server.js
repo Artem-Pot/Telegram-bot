@@ -19,6 +19,7 @@ let interval = 10000; // Интервал времени для отправки
 let startTime; // Время начала отправки
 let endTime; // Время окончания отправки
 let mediaFiles; // Массив медиафайлов
+const now = moment().tz("Europe/Samara").format('YYYY-MM-DD HH:mm:ss'); //формат времени для консольных сообщений
 
 // Функция для получения списка медиафайлов из папки
 function getMediaFiles() {
@@ -34,10 +35,10 @@ async function convertToPNG(filePath) {
     try {
         await sharp(filePath)
             .toFile(outputFilePath);
-        console.log(`Конвертирован ${filePath} в ${outputFilePath}`);
+        console.log(`[${now}] Конвертирован ${filePath} в ${outputFilePath}`);
         return outputFilePath; // Возвращаем путь к конвертированному файлу
     } catch (error) {
-        console.error(`Ошибка конвертации ${filePath}: ${error.message}`);
+        console.error(`[${now}] Ошибка конвертации ${filePath}: ${error.message}`);
         return null; // Возвращаем null в случае ошибки
     }
 }
@@ -52,7 +53,7 @@ function getSubfolders(directory) {
 // Функция для отправки медиафайла
 async function sendMediaFile(mediaFile) {
     const mediaPath = path.join(mediaFolder, mediaFile);
-    console.log(`Попытка отправить медиафайл: ${mediaPath}`); // Отладочная информация
+    console.log(`[${now}] Попытка отправить медиафайл: ${mediaPath}`); // Отладочная информация
 
     const isVideo = /\.(mp4|mov|avi|mpeg|m4v)$/i.test(mediaFile);
     const isImage = /\.(jpg|jpeg|png|gif|raw|tiff|bmp|psd|svg|webp)$/i.test(mediaFile);
@@ -62,32 +63,35 @@ async function sendMediaFile(mediaFile) {
         if (convertedFile) {
             // Если конвертация успешна, отправляем конвертированный файл
             await bot.sendPhoto(channelId, convertedFile);
-            console.log(`Отправлено изображение: ${convertedFile}`);
+            const now = moment().tz("Europe/Samara").format('YYYY-MM-DD HH:mm:ss');
+            console.log(`[${now}] Отправлено изображение: ${convertedFile}`);
             return; // Завершаем выполнение функции
         } else {
-            console.error(`Не удалось конвертировать файл: ${mediaFile}`);
+            console.error(`[${now}] Не удалось конвертировать файл: ${mediaFile}`);
             return; // Завершаем выполнение функции, если конвертация не удалась
         }
     }
-
+    
     if (isVideo) {
         bot.sendVideo(channelId, mediaPath)
             .then(() => {
-                console.log(`Отправлено видео: ${mediaFile}`);
+                const now = moment().tz("Europe/Samara").format('YYYY-MM-DD HH:mm:ss');
+                console.log(`[${now}] Отправлено видео: ${mediaFile}`);
             })
             .catch(error => {
-                console.error(`Ошибка отправки видео: ${error}`);
+                console.error(`[${now}] Ошибка отправки видео: ${error}`);
             });
     } else if (isImage) {
-        bot.sendPhoto(channelId, mediaPath)
+        bot.sendPhoto(channelId, mediaPath) // Используем mediaPath вместо convertedFile
             .then(() => {
-                console.log(`Отправлено изображение: ${mediaFile}`);
+                const now = moment().tz("Europe/Samara").format('YYYY-MM-DD HH:mm:ss');
+                console.log(`[${now}] Отправлено изображение: ${mediaPath}`); // Используем mediaPath
             })
             .catch(error => {
-                console.error(`Ошибка отправки изображения: ${error}`);
+                console.error(`[${now}] Ошибка отправки изображения: ${error}`);
             });
     } else {
-        console.error(`Файл ${mediaFile} не поддерживается для отправки.`);
+        console.error(`[${now}] Файл ${mediaFile} не поддерживается для отправки.`);
     }
 }
 
@@ -118,7 +122,7 @@ function startSendingMedia() {
                 index++; // Увеличиваем индекс на 1
             } else {
                 stopSendingMedia();
-                bot.sendMessage(chatId, `<b>Все медиафайлы были успешно отправлены.</b>`, {parse_mode: 'HTML'});
+                bot.sendMessage(chatId, `<b>-----Все медиафайлы были успешно отправлены.------</b>`, {parse_mode: 'HTML'});
 
                 showStartOptions(); // Показать начальные опции
                 chatId = null;
@@ -158,7 +162,7 @@ function stopSendingMedia() {
 
     clearInterval(intervalId); // Останавливаем интервал
     sendingMedia = false; // Сбрасываем флаг
-    console.log('Прекращена отправка медиафайлов.');
+    console.log(`[${now}] Прекращена отправка медиафайлов.`);
 }
 
 // Функция для отображения начальных опций
@@ -276,7 +280,7 @@ bot.on('message', (msg) => {
             const timeParts = msg.text.split(':');
             const hours = parseInt(timeParts[0]);
             const minutes = parseInt(timeParts[1]);
-            startTime = moment.tz(`2023-01-01 ${msg.text}`, "Europe/Samara"); // Устанавливаем время начала с учетом временной зоны
+            startTime = moment.tz(`2023-01-01 ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`, "Europe/Samara"); // Устанавливаем время начала с учетом временной зоны
             bot.sendMessage(chatId, `<b>Время начала установлено на ${msg.text}. Теперь выберите время окончания:</b>`, {
                 reply_markup: {
                     keyboard: [
@@ -295,11 +299,12 @@ bot.on('message', (msg) => {
             const timeParts = msg.text.split(':');
             const hours = parseInt(timeParts[0]);
             const minutes = parseInt(timeParts[1]);
-            endTime = moment.tz(`2023-01-01 ${msg.text}`, "Europe/Samara"); // Устанавливаем время окончания с учетом временной зоны
+            endTime = moment.tz(`2023-01-01 ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`, "Europe/Samara"); // Устанавливаем время окончания с учетом временной зоны
 
             // Проверка, что время окончания больше времени начала
             if (endTime.isSameOrBefore(startTime)) {
-                bot.sendMessage(chatId, `<b>Время окончания должно быть позже времени начала.</b>`, { parse_mode: 'HTML' });
+                bot.sendMessage(chatId, `<b>Время окончания должно быть позже времени начала. Пожалуйста, выберите время окончания снова:</b>`, { parse_mode: 'HTML' });
+                showEndTimeOptions(); // Показать меню выбора времени окончания снова
             } else {
                 bot.sendMessage(chatId, `<b>Готово! Нажмите "Запустить отправку медиафайлов", чтобы начать.</b>`, {
                     reply_markup: {
@@ -342,4 +347,5 @@ bot.on('message', (msg) => {
 });
 
 // Запуск бота
-console.log('Бот запущен и готов к работе...');
+
+console.log(`[${now}] Бот запущен и готов к работе...`);
