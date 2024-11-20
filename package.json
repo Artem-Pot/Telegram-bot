@@ -4,9 +4,7 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node parser.js",
-    "start2": "node server.js",
-    "start3": "node parserSite.js"
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",

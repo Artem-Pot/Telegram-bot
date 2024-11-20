@@ -13,7 +13,7 @@ const channelId = '@TechnicalProgress'; // Укажите ID вашего кан
 const bot = new TelegramBot(token, { polling: true });
 
 let chatId; // Переменная для хранения идентификатора чата
-let mediaFolder = './media'; // Папка, из которой будут загружаться изображения и видео (по умолчанию)
+let mediaFolder = './media'; // Папка, из которой будут загружаться изображения и видео (по умолчанию)ssh
 let sendingMedia = false; // Флаг для отслеживания состояния отправки медиафайлов
 let intervalId; // ID интервала
 let interval = 10000; // Интервал времени для отправки медиафайлов (по умолчанию 10 секунд)
