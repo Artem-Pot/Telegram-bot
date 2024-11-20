@@ -6,8 +6,7 @@ const moment = require('moment-timezone'); // Импортируем moment-time
 const chalk = require('chalk');
 
 // Ваш токен и chatId канала (например, @my_channel)
-const token = '7217323400:AAG-59l0iLJ01a-rVGbS8qplGLgT1EyAa2U';
-const channelId = '@TechnicalProgress'; // Укажите ID вашего канала
+const { token, channelId } = require('./keyId');
 
 // Создаем бота
 const bot = new TelegramBot(token, { polling: true });
@@ -358,8 +357,4 @@ bot.on('message', (msg) => {
     } 
 });
 
-// Запуск бота
-
 console.log(chalk.green(`[${now}] Бот запущен и готов к работе...`));
-
-//тест 1
