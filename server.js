@@ -35,7 +35,7 @@ async function convertToPNG(filePath) {
     try {
         await sharp(filePath)
             .toFile(outputFilePath);
-        console.log(chalk.yellow(`[${now}] Конвертирован ${filePath} в ${outputFilePath}`));
+        console.log(chalk.blue(`[${now}] Конвертирован ${filePath} в ${outputFilePath}`));
         return outputFilePath; // Возвращаем путь к конвертированному файлу
     } catch (error) {
         console.error(chalk.white.bgRed(`[${now}] Ошибка конвертации ${filePath}: ${error.message}`));
@@ -64,7 +64,7 @@ async function sendMediaFile(mediaFile) {
             // Если конвертация успешна, отправляем конвертированный файл
             await bot.sendPhoto(channelId, convertedFile);
             const now = moment().tz("Europe/Samara").format('YYYY-MM-DD HH:mm:ss');
-            console.log(`[${now}] Отправлено изображение: ${convertedFile}`);
+            console.log(chalk.yellow(`[${now}] Отправлено изображение: ${convertedFile}`));
             return; // Завершаем выполнение функции
         } else {
             console.error(chalk.white.bgRed(`[${now}] Не удалось конвертировать файл: ${mediaFile}`));
@@ -76,7 +76,7 @@ async function sendMediaFile(mediaFile) {
         bot.sendVideo(channelId, mediaPath)
             .then(() => {
                 const now = moment().tz("Europe/Samara").format('YYYY-MM-DD HH:mm:ss');
-                console.log(`[${now}] Отправлено видео: ${mediaFile}`);
+                console.log(chalk.yellow(`[${now}] Отправлено видео: ${mediaFile}`));
             })
             .catch(error => {
                 console.error(chalk.white.bgRed(`[${now}] Ошибка отправки видео: ${error}`));
@@ -162,7 +162,7 @@ function stopSendingMedia() {
 
     clearInterval(intervalId); // Останавливаем интервал
     sendingMedia = false; // Сбрасываем флаг
-    console.log(chalk.green(`[${now}] Прекращена отправка медиафайлов.`));
+    console.log(chalk.bold.green(`[${now}] Прекращена отправка медиафайлов.`));
 }
 
 // Функция для отображения начальных опций
@@ -182,12 +182,14 @@ function showStartOptions() {
 }
 
 // Функция для отображения опций интервала
+// Функция для отображения опций интервала
 function showIntervalOptions() {
     const options = {
         reply_markup: {
             keyboard: [
-                ['5 секунд', '10 секунд'],
-                ['15 секунд', '20 секунд'],
+                ['5 сек', '30 мин'],
+                ['1 ч', '2 ч'],
+                ['3 ч', '4 ч'],
                 ['Отмена 🔄']
             ],
             resize_keyboard: true,
@@ -269,8 +271,20 @@ bot.on('message', (msg) => {
             return; // Если нет медиафайлов, выходим из функции
         }
         showIntervalOptions(); // Переходим к выбору интервала
-    } else if (['5 секунд', '10 секунд', '15 секунд', '20 секунд'].includes(msg.text)) {
-        interval = parseInt(msg.text) * 1000; // Устанавливаем интервал в миллисекундах
+    } else if (['5 сек', '30 мин', '1 ч', '2 ч', '3 ч', '4 ч'].includes(msg.text)) {
+        if (msg.text === '5 сек') {
+            interval = 5 * 1000; // Устанавливаем интервал в 5 секунд
+        } else if (msg.text === '30 мин') {
+            interval = 30 * 60 * 1000; // Устанавливаем интервал в 30 минут
+        } else if (msg.text === '1 ч') {
+            interval = 1 * 60 * 60 * 1000; // Устанавливаем интервал в 1 час
+        } else if (msg.text === '2 ч') {
+            interval = 2 * 60 * 60 * 1000; // Устанавливаем интервал в 2 часа
+        } else if (msg.text === '3 ч') {
+            interval = 3 * 60 * 60 * 1000; // Устанавливаем интервал в 3 часа
+        } else if (msg.text === '4 ч') {
+            interval = 4 * 60 * 60 * 1000; // Устанавливаем интервал в 4 часа
+        }
         bot.sendMessage(chatId, `<b>Интервал установлен на ${msg.text}. Выберите время начала:</b> `, {
             reply_markup: {
                 keyboard: [
@@ -357,4 +371,4 @@ bot.on('message', (msg) => {
     } 
 });
 
-console.log(chalk.green(`[${now}] Бот запущен и готов к работе...`));
+console.log(chalk.bold.green(`[${now}] Бот запущен и готов к работе...`));
