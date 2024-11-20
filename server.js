@@ -125,7 +125,6 @@ function startSendingMedia() {
             } else {
                 stopSendingMedia();
                 bot.sendMessage(chatId, `<b>-----Все медиафайлы были успешно отправлены.------</b>`, {parse_mode: 'HTML'});
-
                 showStartOptions(); // Показать начальные опции
                 chatId = null;
                 mediaFolder = './media'; // Сброс к папке по умолчанию
@@ -256,7 +255,6 @@ bot.onText(/\/start/, (msg) => {
 });
 
 // Обработка выбора папки с медиафайлами
-// Обработка выбора папки с медиафайлами
 bot.on('message', (msg) => {
     chatId = msg.chat.id; // Обновляем идентификатор чата
 
@@ -363,3 +361,5 @@ bot.on('message', (msg) => {
 // Запуск бота
 
 console.log(chalk.green(`[${now}] Бот запущен и готов к работе...`));
+
+//тест 1
