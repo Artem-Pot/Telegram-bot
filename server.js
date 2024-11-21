@@ -6,12 +6,11 @@ const moment = require('moment-timezone'); // Импортируем moment-time
 const chalk = require('chalk');
 const xlsx = require('xlsx'); // Импортируем библиотеку для работы с exel
 
-// Ваш токен и chatId канала (например, @my_channel)
+// Токен и chatId канала 
 const { token, channelId } = require('./keyId');
 
 // Создаем бота
 const bot = new TelegramBot(token, { polling: true });
-
 let chatId; // Переменная для хранения идентификатора чата
 let mediaFolder = './media'; // Папка, из которой будут загружаться изображения и видео (по умолчанию)ssh
 let sendingMedia = false; // Флаг для отслеживания состояния отправки медиафайлов
@@ -29,7 +28,7 @@ function getTextFromExcel() {
     const sheetName = workbook.SheetNames[0]; // Получаем имя первого листа
     const sheet = workbook.Sheets[sheetName]; // Получаем данные с этого листа
     const data = xlsx.utils.sheet_to_json(sheet, { header: 1 }); // Преобразуем данные в массив массивов
-    return data.map(row => row[0]); // Возвращаем только первый столбец (столбец A)
+    return data.map(row => row.slice(0, 3)); // Возвращаем первые три столбца (A, B, C)
 }
 
 // Функция для получения списка медиафайлов из папки
@@ -78,7 +77,19 @@ async function sendMediaFile(mediaFile) {
 
         const texts = getTextFromExcel(); // Получаем текст из Excel
         const index = mediaFiles.indexOf(mediaFile);
-        const postText = texts[index] || ''; // Получаем текст для текущего медиафайла
+        const postTexts = texts[index] || []; // Получаем массив текстов для текущего медиафайла
+
+        // Формируем подпись
+        let postText = '';
+        if (postTexts[0] && postTexts[0].trim() !== '') {
+            postText += postTexts[0].trim() + '\n\n'; // Столбец A
+        }
+        if (postTexts[1] && postTexts[1].trim() !== '') {
+            postText += postTexts[1].trim() + '\n\n'; // Столбец B
+        }
+        if (postTexts[2] && postTexts[2].trim() !== '') {
+            postText += postTexts[2].trim(); // Столбец C
+        }
 
         if (postText.trim() === '') {
             console.log(chalk.yellow(`[${now}] Пустой текст для файла ${mediaFile}. Отправляем без подписи.`));
@@ -118,12 +129,12 @@ async function sendMediaFile(mediaFile) {
             sentFiles.add(fileNameWithoutExt);
             console.log(chalk.yellow(`[${now}] Отправлено изображение: ${mediaFile}`));
         } else {
-            console.error(chalk.white.bgRed(`[${now}] Файл ${mediaFile} не поддерживается для отправки.`));
+                console.error(chalk.white.bgRed(`[${now}] Файл ${mediaFile} не поддерживается для отправки.`));
+            }
+        } catch (error) {
+            console.error(chalk.white.bgRed(`[${now}] Ошибка отправки медиафайла: ${error.message}`));
         }
-    } catch (error) {
-        console.error(chalk.white.bgRed(`[${now}] Ошибка отправки медиафайла: ${error.message}`));
     }
-}
 
 // Основная функция для отправки медиафайлов через заданный интервал
 function startSendingMedia() {
