@@ -286,7 +286,7 @@ function showSubfolders() {
 
     const options = {
         reply_markup: {
-            keyboard: subfolders.map(folder => [folder]), // Создаем кнопки для каждого подкаталога
+            keyboard: [subfolders], // Все папки в одной строке
             resize_keyboard: true,
             one_time_keyboard: true
         },
