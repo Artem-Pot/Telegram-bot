@@ -66,62 +66,65 @@ function getSubfolders(directory) {
 
 // Функция для отправки медиафайла
 async function sendMediaFile(mediaFile) {
-    const mediaPath = path.join(mediaFolder, mediaFile);
-    console.log(`[${now}] Попытка отправить медиафайл: ${mediaPath}`);
+    try {
+        const mediaPath = path.join(mediaFolder, mediaFile);
+        console.log(`[${now}] Попытка отправить медиафайл: ${mediaPath}`);
 
-    const isVideo = /\.(mp4|mov|avi|mpeg|m4v)$/i.test(mediaFile);
-    const isImage = /\.(jpg|jpeg|png|gif|raw|tiff|bmp|psd|svg|webp)$/i.test(mediaFile);
+        const isVideo = /\.(mp4|mov|avi|mpeg|m4v)$/i.test(mediaFile);
+        const isImage = /\.(jpg|jpeg|png|gif|raw|tiff|bmp|psd|svg|webp)$/i.test(mediaFile);
 
-    const fileNameWithoutExt = mediaFile.replace(/\.[^/.]+$/, "");
-    if (sentFiles.has(fileNameWithoutExt)) {
-        console.log(chalk.yellow(`[${now}] Файл ${mediaFile} уже был отправлен. Пропускаем.`));
-        return;
-    }
-
-    // Получаем текст из файла text.txt
-    const texts = getTextFromFile(); // Здесь получаем все строки, включая пустые
-    const index = mediaFiles.indexOf(mediaFile); // Получаем индекс текущего медиафайла
-    const postText = index < texts.length ? texts[index] : ''; // Получаем текст для текущего медиафайла
-
-    // Проверяем, если текст пустой
-    if (postText.trim() === '') {
-        console.log(chalk.blue(`[${now}] Пустой текст для файла ${mediaFile}. Подпись не будет добавлена.`));
-    }
-
-    // Остальная часть функции...
-    
-    if (isImage && /\.(tiff|svg)$/i.test(mediaFile)) {
-        const convertedFile = await convertToPNG(mediaPath);
-        if (convertedFile) {
-            await bot.sendPhoto(channelId, convertedFile, { caption: postText || undefined }); // Если текст пустой, не передаем его
-            sentFiles.add(fileNameWithoutExt);
-            // Перемещение файла...
-        } else {
-            console.error(chalk.white.bgRed(`[${now}] Не удалось конвертировать файл: ${mediaFile}`));
-            return;
+        const fileNameWithoutExt = mediaFile.replace(/\.[^/.]+$/, "");
+        if (sentFiles.has(fileNameWithoutExt)) {
+            console.log(chalk.yellow(`[${now}] Файл ${mediaFile} уже был отправлен. Пропускаем.`));
+            return; 
         }
-    }
-    
-    if (isVideo) {
-        await bot.sendVideo(channelId, mediaPath, { caption: postText || undefined }) // Если текст пустой, не передаем его
-            .then(() => {
+
+        const texts = getTextFromFile();
+        const index = mediaFiles.indexOf(mediaFile);
+        const postText = texts[index] || '';
+
+        if (postText.trim() === '') {
+            console.log(chalk.yellow(`[${now}] Пустой текст для файла ${mediaFile}. Отправляем без подписи.`));
+        }
+
+        const originalFolder = path.join(__dirname, 'original', path.basename(mediaFolder));
+        if (!fs.existsSync(originalFolder)) {
+            fs.mkdirSync(originalFolder, { recursive: true });
+        }
+
+        if (isImage && /\.(tiff|svg)$/i.test(mediaFile)) {
+            const convertedFile = await convertToPNG(mediaPath);
+            if (convertedFile) {
+                await bot.sendPhoto(channelId, convertedFile, { caption: postText.trim() === '' ? undefined : postText, parse_mode: 'HTML' });
                 sentFiles.add(fileNameWithoutExt);
-                console.log(chalk.yellow(`[${now}] Отправлено видео: ${mediaFile}`));
-            })
-            .catch(error => {
-                console.error(chalk.white.bgRed(`[${now}] Ошибка отправки видео: ${error}`));
-            });
-    } else if (isImage) {
-        await bot.sendPhoto(channelId, mediaPath, { caption: postText || undefined }) // Если текст пустой, не передаем его
-            .then(() => {
-                sentFiles.add(fileNameWithoutExt);
-                console.log(chalk.yellow(`[${now}] Отправлено изображение: ${mediaFile}`));
-            })
-            .catch(error => {
-                console.error(chalk.white.bgRed(`[${now}] Ошибка отправки изображения: ${error}`));
-            });
-    } else {
-        console.error(chalk.white.bgRed(`[${now}] Файл ${mediaFile} не поддерживается для отправки.`));
+                fs.rename(mediaPath, path.join(originalFolder, mediaFile), (err) => {
+                    if (err) {
+                        console.error(chalk.white.bgRed(`[${now}] Ошибка перемещения файла: ${err}`));
+                    } else {
+                        console.log(chalk.blue(`[${now}] Оригинальный файл перемещен в ${originalFolder}`));
+                    }
+                });
+                console.log(chalk.yellow(`[${now}] Отправлено изображение: ${convertedFile}`));
+                return;
+            } else {
+                console.error(chalk.white.bgRed(`[${now}] Не удалось конвертировать файл: ${mediaFile}`));
+                return;
+            }
+        }
+
+        if (isVideo) {
+            await bot.sendVideo(channelId, mediaPath, { caption: postText.trim() === '' ? undefined : postText, parse_mode: 'HTML' });
+            sentFiles.add(fileNameWithoutExt);
+            console.log(chalk.yellow(`[${now}] Отправлено видео: ${mediaFile}`));
+        } else if (isImage) {
+            await bot.sendPhoto(channelId, mediaPath, { caption: postText.trim() === '' ? undefined : postText, parse_mode: 'HTML' });
+            sentFiles.add(fileNameWithoutExt);
+            console.log(chalk.yellow(`[${now}] Отправлено изображение: ${mediaFile}`));
+        } else {
+            console.error(chalk.white.bgRed(`[${now}] Файл ${mediaFile} не поддерживается для отправки.`));
+        }
+    } catch (error) {
+        console.error(chalk.white.bgRed(`[${now}] Ошибка отправки медиафайла: ${error.message}`));
     }
 }
 
