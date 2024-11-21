@@ -60,7 +60,6 @@ function getSubfolders(directory) {
     });
 }
 
-// Функция для отправки медиафайла
 async function sendMediaFile(mediaFile) {
     try {
         const mediaPath = path.join(mediaFolder, mediaFile);
@@ -75,27 +74,30 @@ async function sendMediaFile(mediaFile) {
             return; 
         }
 
-        const texts = getTextFromExcel(); // Получаем текст из Excel
-        const index = mediaFiles.indexOf(mediaFile);
-        const postTexts = texts[index] || []; // Получаем массив текстов для текущего медиафайла
+        // Проверка наличия файла text.xlsx
+        const excelFilePath = path.join(mediaFolder, 'text.xlsx');
+        const texts = fs.existsSync(excelFilePath) ? getTextFromExcel() : null; // Получаем текст из Excel, если файл существует
 
-        // Формируем подпись
         let postText = '';
-        if (postTexts[0] && postTexts[0].trim() !== '') {
-            postText += `<b>${postTexts[0].trim()}</b>\n\n`; // Столбец A (жирный шрифт)
-        }
-        if (postTexts[1] && postTexts[1].trim() !== '') {
-            postText += postTexts[1].trim() + '\n\n'; // Столбец B
-        }
-        if (postTexts[2] && postTexts[2].trim() !== '') {
-            postText += postTexts[2].trim() + '\n\n'; // Столбец C
-        }
-        if (postTexts[3] && postTexts[3].trim() !== '') {
-            postText += postTexts[3].trim(); // Столбец D
-        }
-        
-        if (postText.trim() === '') {
-            console.log(chalk.yellow(`[${now}] Пустой текст для файла ${mediaFile}. Отправляем без подписи.`));
+        if (texts) {
+            const index = mediaFiles.indexOf(mediaFile);
+            const postTexts = texts[index] || []; // Получаем массив текстов для текущего медиафайла
+
+            // Формируем подпись
+            if (postTexts[0] && postTexts[0].trim() !== '') {
+                postText += `<b>${postTexts[0].trim()}</b>\n\n`; // Столбец A (жирный шрифт)
+            }
+            if (postTexts[1] && postTexts[1].trim() !== '') {
+                postText += postTexts[1].trim() + '\n\n'; // Столбец B
+            }
+            if (postTexts[2] && postTexts[2].trim() !== '') {
+                postText += postTexts[2].trim() + '\n\n'; // Столбец C
+            }
+            if (postTexts[3] && postTexts[3].trim() !== '') {
+                postText += postTexts[3].trim(); // Столбец D
+            }
+        } else {
+            console.log(chalk.blue(`[${now}] Файл text.xlsx не найден. Отправляем медиафайлы без текста.`));
         }
 
         const originalFolder = path.join(__dirname, 'original', path.basename(mediaFolder));
@@ -103,7 +105,6 @@ async function sendMediaFile(mediaFile) {
             fs.mkdirSync(originalFolder, { recursive: true });
         }
 
-        // Отправка медиафайла
         if (isImage && /\.(tiff|svg)$/i.test(mediaFile)) {
             const convertedFile = await convertToPNG(mediaPath);
             if (convertedFile) {
@@ -123,6 +124,7 @@ async function sendMediaFile(mediaFile) {
                 return;
             }
         }
+
         if (isVideo) {
             await bot.sendVideo(channelId, mediaPath, { caption: postText.trim() === '' ? undefined : postText, parse_mode: 'HTML' });
             sentFiles.add(fileNameWithoutExt);
@@ -134,6 +136,7 @@ async function sendMediaFile(mediaFile) {
         } else {
             console.error(chalk.white.bgRed(`[${now}] Файл ${mediaFile} не поддерживается для отправки.`));
         }
+    
     } catch (error) {
         console.error(chalk.white.bgRed(`[${now}] Ошибка отправки медиафайла: ${error.message}`));
     }
