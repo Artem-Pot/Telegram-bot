@@ -25,13 +25,15 @@ let sentFiles = new Set(); // Множество для хранения име�
 
 // Функция для получения текста из файла text.txt
 function getTextFromFile() {
-    const textFilePath = path.join(mediaFolder, 'text.txt');
-    if (fs.existsSync(textFilePath)) {
-        const text = fs.readFileSync(textFilePath, 'utf-8');
-        return text.split('\n').filter(line => line.trim() !== ''); // Возвращаем массив непустых строк
+    const textFilePath = path.join(mediaFolder, 'text.txt'); // Определяем путь к файлу text.txt
+    if (fs.existsSync(textFilePath)) { // Проверяем, существует ли файл
+        const text = fs.readFileSync(textFilePath, 'utf-8'); // Читаем содержимое файла
+        return text.split('\n'); // Возвращаем массив всех строк, включая пустые
     }
     return []; // Возвращаем пустой массив, если файл не существует
 }
+
+
 
 // Функция для получения списка медиафайлов из папки
 function getMediaFiles() {
@@ -65,79 +67,55 @@ function getSubfolders(directory) {
 // Функция для отправки медиафайла
 async function sendMediaFile(mediaFile) {
     const mediaPath = path.join(mediaFolder, mediaFile);
-    console.log(`[${now}] Попытка отправить медиафайл: ${mediaPath}`); // Отладочная информация
+    console.log(`[${now}] Попытка отправить медиафайл: ${mediaPath}`);
 
     const isVideo = /\.(mp4|mov|avi|mpeg|m4v)$/i.test(mediaFile);
     const isImage = /\.(jpg|jpeg|png|gif|raw|tiff|bmp|psd|svg|webp)$/i.test(mediaFile);
 
-    // Проверяем, было ли уже отправлено это имя файла (без учета расширения)
-    const fileNameWithoutExt = mediaFile.replace(/\.[^/.]+$/, ""); // Убираем расширение
+    const fileNameWithoutExt = mediaFile.replace(/\.[^/.]+$/, "");
     if (sentFiles.has(fileNameWithoutExt)) {
         console.log(chalk.yellow(`[${now}] Файл ${mediaFile} уже был отправлен. Пропускаем.`));
-        return; // Если файл уже был отправлен, выходим из функции
+        return;
     }
 
     // Получаем текст из файла text.txt
-    const texts = getTextFromFile();
+    const texts = getTextFromFile(); // Здесь получаем все строки, включая пустые
     const index = mediaFiles.indexOf(mediaFile); // Получаем индекс текущего медиафайла
-    const postText = texts[index] || ''; // Получаем текст для текущего медиафайла, если он существует
+    const postText = index < texts.length ? texts[index] : ''; // Получаем текст для текущего медиафайла
 
-    // Проверка на пустой текст
+    // Проверяем, если текст пустой
     if (postText.trim() === '') {
-        console.log(chalk.yellow(`[${now}] Пустой текст для файла ${mediaFile}. Используется текст по умолчанию.`));
+        console.log(chalk.blue(`[${now}] Пустой текст для файла ${mediaFile}. Подпись не будет добавлена.`));
     }
 
-    // Определяем папку для оригиналов
-    const originalFolder = path.join(__dirname, 'original', path.basename(mediaFolder)); // Путь к папке с оригиналами
-
-    // Создаем папку для оригиналов, если она не существует
-    if (!fs.existsSync(originalFolder)) {
-        fs.mkdirSync(originalFolder, { recursive: true });
-    }
-
+    // Остальная часть функции...
+    
     if (isImage && /\.(tiff|svg)$/i.test(mediaFile)) {
         const convertedFile = await convertToPNG(mediaPath);
         if (convertedFile) {
-            // Если конвертация успешна, отправляем конвертированный файл
-            await bot.sendPhoto(channelId, convertedFile, { caption: postText }); // Добавляем текст как подпись
-            sentFiles.add(fileNameWithoutExt); // Добавляем имя файла в множество отправленных
-            
-            // Перемещаем оригинальный файл в папку ./original/<имя_папки_media>/
-            fs.rename(mediaPath, path.join(originalFolder, mediaFile), (err) => {
-                if (err) {
-                    console.error(chalk.white.bgRed(`[${now}] Ошибка перемещения файла: ${err}`));
-                } else {
-                    console.log(chalk.blue(`[${now}] Оригинальный файл перемещен в ${originalFolder}`));
-                }
-            });
-
-            const now = moment().tz("Europe/Samara").format('YYYY-MM-DD HH:mm:ss');
-            console.log(chalk.yellow(`[${now}] Отправлено изображение: ${convertedFile}`));
-            return; // Завершаем выполнение функции
+            await bot.sendPhoto(channelId, convertedFile, { caption: postText || undefined }); // Если текст пустой, не передаем его
+            sentFiles.add(fileNameWithoutExt);
+            // Перемещение файла...
         } else {
             console.error(chalk.white.bgRed(`[${now}] Не удалось конвертировать файл: ${mediaFile}`));
-            return; // Завершаем выполнение функции, если конвертация не удалась
+            return;
         }
     }
     
     if (isVideo) {
-        await bot.sendVideo(channelId, mediaPath, { caption: postText }) // Добавляем текст как подпись
+        await bot.sendVideo(channelId, mediaPath, { caption: postText || undefined }) // Если текст пустой, не передаем его
             .then(() => {
-                sentFiles.add(fileNameWithoutExt); // Добавляем имя файла в множество отправленных
-                // Оригинальный файл не перемещается, так как это видео
-                const now = moment().tz("Europe/Samara").format('YYYY-MM-DD HH:mm:ss');
+                sentFiles.add(fileNameWithoutExt);
                 console.log(chalk.yellow(`[${now}] Отправлено видео: ${mediaFile}`));
             })
             .catch(error => {
                 console.error(chalk.white.bgRed(`[${now}] Ошибка отправки видео: ${error}`));
             });
     } else if (isImage) {
-        await bot.sendPhoto(channelId, mediaPath, { caption: postText }) // Добавляем текст как подпись
+        await bot.sendPhoto(channelId, mediaPath, { caption: postText || undefined }) // Если текст пустой, не передаем его
             .then(() => {
-                sentFiles.add(fileNameWithoutExt); // Добавляем имя файла в множество отправленных
-                // Оригинальный файл не перемещается, так как это обычное изображение
-                const now = moment().tz("Europe/Samara").format('YYYY-MM-DD HH:mm:ss');
-                console.log(chalk.yellow(`[${now}] Отправлено изображение: ${mediaFile}`)); // Используем mediaFile
+                sentFiles.add(fileNameWithoutExt);
+                console.log(chalk.yellow(`[${now}] Отправлено изображение: ${mediaFile}`));
             })
             .catch(error => {
                 console.error(chalk.white.bgRed(`[${now}] Ошибка отправки изображения: ${error}`));
@@ -233,7 +211,7 @@ function showStartOptions() {
     bot.sendMessage(chatId, `<b>Добро пожаловать! Нажмите "Выбрать папку с медиафайлами", чтобы продолжить:</b>`, options);
 }
 
-// Функция для отображения опций интервала
+
 // Функция для отображения опций интервала
 function showIntervalOptions() {
     const options = {
@@ -421,6 +399,11 @@ bot.on('message', (msg) => {
         interval = 10000; // Сброс интервала к значению по умолчанию
 
     } 
+});
+
+//вывод ошибок
+bot.on("polling_error", (error) => {
+    console.error(chalk.white.bgRed(`[${now}] Ошибка опроса: ${error.message}`));
 });
 
 console.log(chalk.bold.green(`[${now}] Бот запущен и готов к работе...`));
