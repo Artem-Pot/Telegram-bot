@@ -28,7 +28,7 @@ function getTextFromExcel() {
     const sheetName = workbook.SheetNames[0]; // Получаем имя первого листа
     const sheet = workbook.Sheets[sheetName]; // Получаем данные с этого листа
     const data = xlsx.utils.sheet_to_json(sheet, { header: 1 }); // Преобразуем данные в массив массивов
-    return data.map(row => row.slice(0, 3)); // Возвращаем первые три столбца (A, B, C)
+    return data.map(row => row.slice(0, 4)); // Возвращаем первые четыре столбца (A, B, C, D)
 }
 
 // Функция для получения списка медиафайлов из папки
@@ -82,15 +82,18 @@ async function sendMediaFile(mediaFile) {
         // Формируем подпись
         let postText = '';
         if (postTexts[0] && postTexts[0].trim() !== '') {
-            postText += postTexts[0].trim() + '\n\n'; // Столбец A
+            postText += `<b>${postTexts[0].trim()}</b>\n\n`; // Столбец A (жирный шрифт)
         }
         if (postTexts[1] && postTexts[1].trim() !== '') {
             postText += postTexts[1].trim() + '\n\n'; // Столбец B
         }
         if (postTexts[2] && postTexts[2].trim() !== '') {
-            postText += postTexts[2].trim(); // Столбец C
+            postText += postTexts[2].trim() + '\n\n'; // Столбец C
         }
-
+        if (postTexts[3] && postTexts[3].trim() !== '') {
+            postText += postTexts[3].trim(); // Столбец D
+        }
+        
         if (postText.trim() === '') {
             console.log(chalk.yellow(`[${now}] Пустой текст для файла ${mediaFile}. Отправляем без подписи.`));
         }
@@ -100,6 +103,7 @@ async function sendMediaFile(mediaFile) {
             fs.mkdirSync(originalFolder, { recursive: true });
         }
 
+        // Отправка медиафайла
         if (isImage && /\.(tiff|svg)$/i.test(mediaFile)) {
             const convertedFile = await convertToPNG(mediaPath);
             if (convertedFile) {
@@ -119,7 +123,6 @@ async function sendMediaFile(mediaFile) {
                 return;
             }
         }
-
         if (isVideo) {
             await bot.sendVideo(channelId, mediaPath, { caption: postText.trim() === '' ? undefined : postText, parse_mode: 'HTML' });
             sentFiles.add(fileNameWithoutExt);
@@ -129,12 +132,12 @@ async function sendMediaFile(mediaFile) {
             sentFiles.add(fileNameWithoutExt);
             console.log(chalk.yellow(`[${now}] Отправлено изображение: ${mediaFile}`));
         } else {
-                console.error(chalk.white.bgRed(`[${now}] Файл ${mediaFile} не поддерживается для отправки.`));
-            }
-        } catch (error) {
-            console.error(chalk.white.bgRed(`[${now}] Ошибка отправки медиафайла: ${error.message}`));
+            console.error(chalk.white.bgRed(`[${now}] Файл ${mediaFile} не поддерживается для отправки.`));
         }
+    } catch (error) {
+        console.error(chalk.white.bgRed(`[${now}] Ошибка отправки медиафайла: ${error.message}`));
     }
+}
 
 // Основная функция для отправки медиафайлов через заданный интервал
 function startSendingMedia() {
