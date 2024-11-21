@@ -15,7 +15,8 @@
     "fs": "^0.0.1-security",
     "moment-timezone": "^0.5.46",
     "node-telegram-bot-api": "^0.66.0",
-    "sharp": "^0.33.5"
+    "sharp": "^0.33.5",
+    "xlsx": "^0.18.5"
   },
   "description": ""
 }

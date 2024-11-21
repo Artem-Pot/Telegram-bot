@@ -4,6 +4,7 @@ const path = require('path');
 const sharp = require('sharp');
 const moment = require('moment-timezone'); // Импортируем moment-timezone
 const chalk = require('chalk');
+const xlsx = require('xlsx'); // Импортируем библиотеку для работы с exel
 
 // Ваш токен и chatId канала (например, @my_channel)
 const { token, channelId } = require('./keyId');
@@ -22,18 +23,14 @@ let mediaFiles; // Массив медиафайлов
 const now = moment().tz("Europe/Samara").format('YYYY-MM-DD HH:mm:ss'); //формат времени для консольных сообщений
 let sentFiles = new Set(); // Множество для хранения имен отправленных файлов
 
-
-// Функция для получения текста из файла text.txt
-function getTextFromFile() {
-    const textFilePath = path.join(mediaFolder, 'text.txt'); // Определяем путь к файлу text.txt
-    if (fs.existsSync(textFilePath)) { // Проверяем, существует ли файл
-        const text = fs.readFileSync(textFilePath, 'utf-8'); // Читаем содержимое файла
-        return text.split('\n'); // Возвращаем массив всех строк, включая пустые
-    }
-    return []; // Возвращаем пустой массив, если файл не существует
+// Функция для получения текста из файла text.xlsx
+function getTextFromExcel() {
+    const workbook = xlsx.readFile(path.join(mediaFolder, 'text.xlsx')); // Читаем файл Excel
+    const sheetName = workbook.SheetNames[0]; // Получаем имя первого листа
+    const sheet = workbook.Sheets[sheetName]; // Получаем данные с этого листа
+    const data = xlsx.utils.sheet_to_json(sheet, { header: 1 }); // Преобразуем данные в массив массивов
+    return data.map(row => row[0]); // Возвращаем только первый столбец (столбец A)
 }
-
-
 
 // Функция для получения списка медиафайлов из папки
 function getMediaFiles() {
@@ -79,9 +76,9 @@ async function sendMediaFile(mediaFile) {
             return; 
         }
 
-        const texts = getTextFromFile();
+        const texts = getTextFromExcel(); // Получаем текст из Excel
         const index = mediaFiles.indexOf(mediaFile);
-        const postText = texts[index] || '';
+        const postText = texts[index] || ''; // Получаем текст для текущего медиафайла
 
         if (postText.trim() === '') {
             console.log(chalk.yellow(`[${now}] Пустой текст для файла ${mediaFile}. Отправляем без подписи.`));
