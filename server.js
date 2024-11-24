@@ -31,11 +31,41 @@ function getTextFromExcel() {
     return data.map(row => row.slice(0, 4)); // Возвращаем первые четыре столбца (A, B, C, D)
 }
 
+// Функция для естественной сортировки
+function naturalSort(a, b) {
+    const regex = /(\d+)|(\D+)/g; // Регулярное выражение для разделения чисел и строк
+    const aParts = a.match(regex);
+    const bParts = b.match(regex);
+
+    for (let i = 0; i < Math.min(aParts.length, bParts.length); i++) {
+        const aPart = aParts[i];
+        const bPart = bParts[i];
+
+        // Если обе части - числа, сравниваем как числа
+        if (!isNaN(aPart) && !isNaN(bPart)) {
+            const numA = parseInt(aPart, 10);
+            const numB = parseInt(bPart, 10);
+            if (numA !== numB) {
+                return numA - numB; // Сравнение чисел
+            }
+        } else {
+            // Если части разные, сравниваем как строки
+            if (aPart !== bPart) {
+                return aPart.localeCompare(bPart);
+            }
+        }
+    }
+
+    return aParts.length - bParts.length; // Если длины разные, сравниваем по длине
+}
+
 // Функция для получения списка медиафайлов из папки
 function getMediaFiles() {
-    return fs.readdirSync(mediaFolder).filter(file => {
+    const files = fs.readdirSync(mediaFolder).filter(file => {
         return /\.(jpg|jpeg|png|gif|raw|tiff|bmp|psd|svg|webp|mp4|mov|avi|mpeg|m4v)$/.test(file); // Поддерживаемые форматы изображений и видео
     });
+    // Сортируем файлы с помощью функции naturalSort
+    return files.sort(naturalSort);
 }
 
 // Функция для конвертации TIFF и SVG в PNG
