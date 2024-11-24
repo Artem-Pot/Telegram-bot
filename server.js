@@ -59,28 +59,57 @@ function naturalSort(a, b) {
     return aParts.length - bParts.length; // Если длины разные, сравниваем по длине
 }
 
+// Функция для преобразования имен файлов в нижний регистр
+function toLowerCaseFileNames(files) {
+    return files.map(file => file.toLowerCase());
+}
+
 // Функция для получения списка медиафайлов из папки
 function getMediaFiles() {
     const files = fs.readdirSync(mediaFolder).filter(file => {
         return /\.(jpg|jpeg|png|gif|raw|tiff|bmp|psd|svg|webp|mp4|mov|avi|mpeg|m4v)$/.test(file); // Поддерживаемые форматы изображений и видео
     });
+
+    console.log("Найденные файлы:", files); // Вывод найденных файлов для отладки
+
+    // Преобразуем имена файлов в нижний регистр
+    const lowerCaseFiles = toLowerCaseFileNames(files);
+
+    console.log("Файлы в нижнем регистре:", lowerCaseFiles); // Вывод файлов в нижнем регистре для отладки
+
     // Сортируем файлы с помощью функции naturalSort
-    return files.sort(naturalSort);
+    return lowerCaseFiles.sort(naturalSort);
 }
 
-// Функция для конвертации TIFF и SVG в PNG
-async function convertToPNG(filePath) {
-    const outputFilePath = filePath.replace(/\.(tiff|svg)$/i, '.png');
+// Функция для получения списка медиафайлов из папки и переименования их в нижний регистр
+function getMediaFiles() {
+    const files = fs.readdirSync(mediaFolder).filter(file => {
+        return /\.(jpg|jpeg|png|gif|raw|tiff|bmp|psd|svg|webp|mp4|mov|avi|mpeg|m4v)$/i.test(file); // Поддерживаемые форматы изображений и видео, игнорируя регистр
+    });
 
-    try {
-        await sharp(filePath)
-            .toFile(outputFilePath);
-        console.log(chalk.blue(`[${now}] Конвертирован ${filePath} в ${outputFilePath}`));
-        return outputFilePath; // Возвращаем путь к конвертированному файлу
-    } catch (error) {
-        console.error(chalk.white.bgRed(`[${now}] Ошибка конвертации ${filePath}: ${error.message}`));
-        return null; // Возвращаем null в случае ошибки
-    }
+    console.log("Найденные файлы:", files); // Вывод найденных файлов для отладки
+
+    // Переименовываем файлы в нижний регистр
+    files.forEach(file => {
+        const lowerCaseFile = file.toLowerCase();
+        const oldPath = path.join(mediaFolder, file);
+        const newPath = path.join(mediaFolder, lowerCaseFile);
+        
+        if (oldPath !== newPath) { // Проверяем, если имя файла уже в нижнем регистре
+            fs.renameSync(oldPath, newPath); // Переименовываем файл
+            console.log(`Переименован файл: ${file} -> ${lowerCaseFile}`);
+        }
+    });
+
+    // Получаем обновленный список файлов после переименования
+    const lowerCaseFiles = fs.readdirSync(mediaFolder).filter(file => {
+        return /\.(jpg|jpeg|png|gif|raw|tiff|bmp|psd|svg|webp|mp4|mov|avi|mpeg|m4v)$/.test(file); // Поддерживаемые форматы изображений и видео
+    });
+
+    console.log("Файлы в нижнем регистре:", lowerCaseFiles); // Вывод файлов в нижнем регистре для отладки
+
+    // Сортируем файлы с помощью функции naturalSort
+    return lowerCaseFiles.sort(naturalSort);
 }
 
 // Функция для получения списка вложенных папок
