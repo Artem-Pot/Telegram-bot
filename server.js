@@ -157,12 +157,22 @@ function startSendingMedia() {
 
     let index = 0;
 
+    // Проверяем текущее время сразу при запуске
+    const currentTime = moment.tz("Europe/Samara"); // Получаем текущее время в Europe/Samara
+    const currentTotalMinutes = currentTime.hours() * 60 + currentTime.minutes();
+
+    const startTotalMinutes = startTime.hours() * 60 + startTime.minutes();
+    const endTotalMinutes = endTime.hours() * 60 + endTime.minutes();
+
+    // Если текущее время находится в интервале, отправляем первый файл сразу
+    if (currentTotalMinutes >= startTotalMinutes && currentTotalMinutes < endTotalMinutes) {
+        sendMediaFile(mediaFiles[index]);
+        index++; // Увеличиваем индекс на 1
+    }
+
     intervalId = setInterval(() => {
         const currentTime = moment.tz("Europe/Samara"); // Получаем текущее время в Europe/Samara
         const currentTotalMinutes = currentTime.hours() * 60 + currentTime.minutes();
-
-        const startTotalMinutes = startTime.hours() * 60 + startTime.minutes();
-        const endTotalMinutes = endTime.hours() * 60 + endTime.minutes();
 
         if (currentTotalMinutes >= startTotalMinutes && currentTotalMinutes < endTotalMinutes) {
             if (index < mediaFiles.length) {
@@ -172,15 +182,7 @@ function startSendingMedia() {
                 stopSendingMedia();
                 bot.sendMessage(chatId, `<b>-----Все медиафайлы были успешно отправлены.------</b>`, {parse_mode: 'HTML'});
                 showStartOptions(); // Показать начальные опции
-                chatId = null;
-                mediaFolder = './media'; // Сброс к папке по умолчанию
-                sendingMedia = false; // Сброс флага отправки
-                clearInterval(intervalId); // Остановка интервала, если он запущен
-                startTime = null; // Сброс времени начала
-                endTime = null; // Сброс времени окончания
-                intervalId = null; // Сброс ID интервала
-                interval = 10000; // Сброс интервала к значению по умолчанию
-
+                resetSendingState(); // Сброс состояния отправки
             }
         } else if (currentTotalMinutes >= endTotalMinutes) {
             stopSendingMedia();
@@ -202,6 +204,8 @@ function startSendingMedia() {
 
     bot.sendMessage(chatId, `<b>Отправка медиафайлов запущена!</b>`, options);
 }
+
+
 
 // Функция для остановки отправки медиафайлов
 function stopSendingMedia() {
@@ -273,14 +277,7 @@ function showSubfolders() {
     if (subfolders.length === 0) {
         bot.sendMessage(chatId, `<b>В указанной папке нет вложенных папок.</b>`, {parse_mode: 'HTML'});
         showStartOptions(); // Показать начальные опции
-        chatId = null;
-        mediaFolder = './media'; // Сброс к папке по умолчанию
-        sendingMedia = false; // Сброс флага отправки
-        clearInterval(intervalId); // Остановка интервала, если он запущен
-        startTime = null; // Сброс времени начала
-        endTime = null; // Сброс времени окончания
-        intervalId = null; // Сброс ID интервала
-        interval = 10000; // Сброс интервала к значению по умолчанию
+        resetSendingState();
         return;
     }
 
@@ -406,17 +403,22 @@ bot.on('message', (msg) => {
     } else if (msg.text === 'Отмена 🔄') {
         // Сброс всех переменных и возврат на начальный экран
         showStartOptions(); // Показать начальные опции
-        chatId = null;
-        mediaFolder = './media'; // Сброс к папке по умолчанию
-        sendingMedia = false; // Сброс флага отправки
-        clearInterval(intervalId); // Остановка интервала, если он запущен
-        startTime = null; // Сброс времени начала
-        endTime = null; // Сброс времени окончания
-        intervalId = null; // Сброс ID интервала
-        interval = 10000; // Сброс интервала к значению по умолчанию
+        resetSendingState();
 
     } 
 });
+
+// Функция для сброса состояния отправки
+function resetSendingState() {
+    chatId = null;
+    mediaFolder = './media'; // Сброс к папке по умолчанию
+    sendingMedia = false; // Сброс флага отправки
+    clearInterval(intervalId); // Остановка интервала, если он запущен
+    startTime = null; // Сброс времени начала
+    endTime = null; // Сброс времени окончания
+    intervalId = null; // Сброс ID интервала
+    interval = 10000; // Сброс интервала к значению по умолчанию
+}
 
 //вывод ошибок
 bot.on("polling_error", (error) => {
