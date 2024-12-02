@@ -21,6 +21,8 @@ let endTime; // Время окончания отправки
 let mediaFiles; // Массив медиафайлов
 const now = moment().tz("Europe/Samara").format('YYYY-MM-DD HH:mm:ss'); //формат времени для консольных сообщений
 let sentFiles = new Set(); // Множество для хранения имен отправленных файлов
+let sendTimes = []; // Массив для хранения информации о времени отправки
+let mediaQueue = []; // Массив для хранения медиафайлов и их статусов
 
 // Функция для получения текста из файла text.xlsx
 function getTextFromExcel() {
@@ -127,12 +129,28 @@ async function sendMediaFile(mediaFile) {
         const isVideo = /\.(mp4|mov|avi|mpeg|m4v)$/i.test(mediaFile);
         const isImage = /\.(jpg|jpeg|png|gif|raw|tiff|bmp|psd|svg|webp)$/i.test(mediaFile);
 
+        // Обновляем статус файла в очереди
+        const fileIndex = mediaQueue.findIndex(file => file.name === mediaFile);
+        if (fileIndex !== -1) {
+            mediaQueue[fileIndex].status = 'отправляется'; // Обновляем статус на "отправляется"
+        }
+
         const fileNameWithoutExt = mediaFile.replace(/\.[^/.]+$/, "");
         if (sentFiles.has(fileNameWithoutExt)) {
             console.log(chalk.yellow(`[${now}] Файл ${mediaFile} уже был отправлен. Пропускаем.`));
             return; 
         }
 
+        // Получаем текущее время для записи в массив
+        const currentTime = moment.tz("Europe/Samara").format('HH:mm');
+        if (fileIndex === 0) {
+            mediaQueue[fileIndex].sendTime = currentTime; // Устанавливаем время отправки для первого файла
+        }
+
+        if (fileIndex !== -1) {
+            mediaQueue[fileIndex].status = 'отправлено'; // Обновляем статус на "отправлено"
+            mediaQueue[fileIndex].sendTime = currentTime; // Записываем время отправки
+        }
         // Проверка наличия файла text.xlsx
         const excelFilePath = path.join(mediaFolder, 'text.xlsx');
         const texts = fs.existsSync(excelFilePath) ? getTextFromExcel() : null; // Получаем текст из Excel, если файл существует
@@ -186,14 +204,20 @@ async function sendMediaFile(mediaFile) {
 
         if (isVideo) {
             await bot.sendVideo(channelId, mediaPath, { caption: postText.trim() === '' ? undefined : postText, parse_mode: 'HTML' });
-            sentFiles.add(fileNameWithoutExt);
-            console.log(chalk.yellow(`[${now}] Отправлено видео: ${mediaFile}`));
+            if (fileIndex !== -1) {
+                mediaQueue[fileIndex].status = 'отправлено'; // Обновляем статус на "отправлено"
+                mediaQueue[fileIndex].sendTime = currentTime; // Записываем время отправки
+            }
+            console.log(`[${now}] Отправлено видео: ${mediaFile}`);
         } else if (isImage) {
             await bot.sendPhoto(channelId, mediaPath, { caption: postText.trim() === '' ? undefined : postText, parse_mode: 'HTML' });
-            sentFiles.add(fileNameWithoutExt);
-            console.log(chalk.yellow(`[${now}] Отправлено изображение: ${mediaFile}`));
+            if (fileIndex !== -1) {
+                mediaQueue[fileIndex].status = 'отправлено'; // Обновляем статус на "отправлено"
+                mediaQueue[fileIndex].sendTime = currentTime; // Записываем время отправки
+            }
+            console.log(`[${now}] Отправлено изображение: ${mediaFile}`);
         } else {
-            console.error(chalk.white.bgRed(`[${now}] Файл ${mediaFile} не поддерживается для отправки.`));
+            console.error(`[${now}] Файл ${mediaFile} не поддерживается для отправки.`);
         }
     
     } catch (error) {
@@ -201,12 +225,43 @@ async function sendMediaFile(mediaFile) {
     }
 }
 
+// Команда для просмотра очереди
+bot.onText(/\/queue/, (msg) => {
+    chatId = msg.chat.id; // Сохраняем идентификатор чата
+    if (mediaQueue.length === 0) {
+        bot.sendMessage(chatId, `<b>Очередь пуста.</b>`, { parse_mode: 'HTML' });
+    } else {
+        const queueMessage = mediaQueue.map(file => {
+            const scheduledTime = file.scheduledTime ? file.scheduledTime : 'не запланировано'; // Если запланированное время есть, показываем его
+            const sendTime = file.sendTime ? file.sendTime : 'не отправлено'; // Если время отправки есть, показываем его
+            return `${file.name} - ${file.status} (запланировано: ${scheduledTime}, отправлено: ${sendTime})`;
+        }).join('\n'); // Формируем сообщение из массива
+        bot.sendMessage(chatId, `<b>Очередь отправки медиафайлов:</b>\n${queueMessage}`, { parse_mode: 'HTML' });
+    }
+});
+
+
 // Основная функция для отправки медиафайлов через заданный интервал
 function startSendingMedia() {
     if (sendingMedia) return; // Если уже отправляем, ничего не делаем
 
     sendingMedia = true;
     mediaFiles = getMediaFiles(); // Получаем список медиафайлов
+    const currentTime = moment.tz("Europe/Samara"); // Получаем текущее время в Europe/Samara
+
+    // Проверяем, если текущее время меньше startTime
+    const firstScheduledTime = currentTime.isBefore(startTime) ? startTime : currentTime;
+
+    mediaQueue = mediaFiles.map((file, index) => {
+        const scheduledTime = moment(firstScheduledTime).add(index * (interval / 1000), 'seconds'); // Запланированное время отправки
+        return {
+            name: file,
+            status: index === 0 ? 'отправлено' : 'ожидает', // Устанавливаем статус для первого файла
+            scheduledTime: scheduledTime.format('HH:mm'), // Форматируем запланированное время
+            sendTime: null
+        };
+    });
+
     if (mediaFiles.length === 0) {
         bot.sendMessage(chatId, `<b>Нет медиафайлов в указанной папке. Пожалуйста, выберите другую папку.</b>`, {parse_mode: 'HTML'});
         sendingMedia = false; // Сбрасываем флаг
@@ -217,7 +272,7 @@ function startSendingMedia() {
     let index = 0;
 
     // Проверяем текущее время сразу при запуске
-    const currentTime = moment.tz("Europe/Samara"); // Получаем текущее время в Europe/Samara
+
     const currentTotalMinutes = currentTime.hours() * 60 + currentTime.minutes();
 
     const startTotalMinutes = startTime.hours() * 60 + startTime.minutes();
@@ -264,14 +319,13 @@ function startSendingMedia() {
     bot.sendMessage(chatId, `<b>Отправка медиафайлов запущена!</b>`, options);
 }
 
-
-
 // Функция для остановки отправки медиафайлов
 function stopSendingMedia() {
     if (!sendingMedia) return; // Если не отправляем, ничего не делаем
 
     clearInterval(intervalId); // Останавливаем интервал
     sendingMedia = false; // Сбрасываем флаг
+    sendTimes = []; // Сбрасываем очередь
     console.log(chalk.bold.green(`[${now}] Прекращена отправка медиафайлов.`));
 }
 
@@ -290,7 +344,6 @@ function showStartOptions() {
 
     bot.sendMessage(chatId, `<b>Добро пожаловать! Нажмите "Выбрать папку с медиафайлами", чтобы продолжить:</b>`, options);
 }
-
 
 // Функция для отображения опций интервала
 function showIntervalOptions() {
