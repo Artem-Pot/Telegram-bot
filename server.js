@@ -177,11 +177,6 @@ async function sendMediaFile(mediaFile) {
             console.log(chalk.blue(`[${now}] Файл text.xlsx не найден. Отправляем медиафайлы без текста.`));
         }
 
-        const originalFolder = path.join(__dirname, 'original', path.basename(mediaFolder));
-        if (!fs.existsSync(originalFolder)) {
-            fs.mkdirSync(originalFolder, { recursive: true });
-        }
-
         if (isImage && /\.(tiff|svg)$/i.test(mediaFile)) {
             const convertedFile = await convertToPNG(mediaPath);
             if (convertedFile) {
@@ -204,17 +199,9 @@ async function sendMediaFile(mediaFile) {
 
         if (isVideo) {
             await bot.sendVideo(channelId, mediaPath, { caption: postText.trim() === '' ? undefined : postText, parse_mode: 'HTML' });
-            if (fileIndex !== -1) {
-                mediaQueue[fileIndex].status = 'отправлено'; // Обновляем статус на "отправлено"
-                mediaQueue[fileIndex].sendTime = currentTime; // Записываем время отправки
-            }
             console.log(`[${now}] Отправлено видео: ${mediaFile}`);
         } else if (isImage) {
             await bot.sendPhoto(channelId, mediaPath, { caption: postText.trim() === '' ? undefined : postText, parse_mode: 'HTML' });
-            if (fileIndex !== -1) {
-                mediaQueue[fileIndex].status = 'отправлено'; // Обновляем статус на "отправлено"
-                mediaQueue[fileIndex].sendTime = currentTime; // Записываем время отправки
-            }
             console.log(`[${now}] Отправлено изображение: ${mediaFile}`);
         } else {
             console.error(`[${now}] Файл ${mediaFile} не поддерживается для отправки.`);
@@ -236,7 +223,7 @@ bot.onText(/\/status/, (msg) => {
             const sendTime = file.sendTime ? file.sendTime : 'не отправлено'; // Если время отправки есть, показываем его
             return `${file.name} - ${file.status} (запланировано: ${scheduledTime}, статус: ${sendTime})`;
         }).join('\n'); // Формируем сообщение из массива
-        bot.sendMessage(chatId, `<b>Очередь отправки медиафайлов:</b>${queueMessage}`, { parse_mode: 'HTML' });
+        bot.sendMessage(chatId, `<b>Очередь отправки медиафайлов:</b>\n${queueMessage}`, { parse_mode: 'HTML' });
     }
 });
 
@@ -272,9 +259,7 @@ function startSendingMedia() {
     let index = 0;
 
     // Проверяем текущее время сразу при запуске
-
     const currentTotalMinutes = currentTime.hours() * 60 + currentTime.minutes();
-
     const startTotalMinutes = startTime.hours() * 60 + startTime.minutes();
     const endTotalMinutes = endTime.hours() * 60 + endTime.minutes();
 
